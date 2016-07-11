@@ -155,7 +155,7 @@ public class AttestationServiceClient {
 	try {
 	    searchHostAttestations = hostAttestationsService.searchHostAttestations(criteria);
 	} catch (Exception e) {
-	    log.error("Unable to get host attestations for created date : {}", lastDateTimeFromLastRunFile, e);
+	    log.error("Unable to get host attestations for from date : {}", lastDateTimeFromLastRunFile, e);
 	    return null;
 	}
 
@@ -172,7 +172,7 @@ public class AttestationServiceClient {
 	    }
 	}
 
-	log.info("Returning the hosts and host attestations");
+	log.info("Returning the hosts and host attestations returned from MTW : {}", hostIdToMwHostMap.size());
 	return hostIdToMwHostMap;
     }
 
@@ -188,8 +188,7 @@ public class AttestationServiceClient {
 	try {
 	    samlTimeout = Integer.parseInt(samlTimeoutStr);
 	} catch (NumberFormatException numberFormatException) {
-	    log.error("Error converting timeout time {} to int. Setting to default of 90", samlTimeoutStr,
-		    numberFormatException);
+	    log.error("Error converting timeout time '{}' to int. Setting to default of 90", samlTimeoutStr);
 	}
 
 	for (AhHost ahHost : ahHostEntities) {

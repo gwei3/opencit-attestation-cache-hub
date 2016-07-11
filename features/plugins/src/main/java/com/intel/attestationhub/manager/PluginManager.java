@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.intel.attestationhub.api.HostDetails;
 import com.intel.attestationhub.api.PublishData;
 import com.intel.attestationhub.api.Tenant;
 import com.intel.attestationhub.api.Tenant.Plugin;
@@ -63,16 +64,18 @@ public class PluginManager {
 		log.error("Error reading configuration for the tenant {}", ahTenant.getId(), e);
 		continue;
 	    }
+	    
 	    List<Plugin> plugins = readTenantConfig.getPlugins();
 	    Collection<AhMapping> ahMappingCollection = ahTenant.getAhMappingCollection();
-	    List<PublishData> hostsData = new ArrayList<PublishData>();
+	    List<HostDetails> hostsData = new ArrayList<HostDetails>();
 	    for (AhMapping ahMapping : ahMappingCollection) {
 		AhHost host = ahMapping.getHost();
-		if (ahMapping.getDeleted() == null || ahMapping.getDeleted() || host.getDeleted() == null || host.getDeleted()) {
-		    log.info("Host/Mapping: {} is not active, skipping", host.getId());
-		    continue;
-		}
-		hostsData.add(new PublishData(host.getHostName(), host.getSamlReport()));
+		HostDetails details = new HostDetails();
+		details.hardwareUuid = host.getHardwareUuid();
+		details.uuid = host.getId();
+		details.hostName = host.getHostName();
+		details.saml = host.getSamlReport();
+		hostsData.add(details);
 	    }
 	    if (hostsData.size() == 0) {
 		log.info("No host data available for tenant: {}", ahTenant.getId());
@@ -81,9 +84,14 @@ public class PluginManager {
 	    log.info("Publishing data to the configured plugins for the tenant: {}", ahTenant.getId());
 	    for (Plugin plugin : plugins) {
 		try {
+		    PublishData data = new PublishData();
+		    data.plugin = plugin;
+		    data.tenantId = ahTenant.getId();
+		    data.tenantName = ahTenant.getTenantName();
+		    data.hostDetailsList = hostsData;
 		    EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin.getName());
 		    log.info("Before pushing data to plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
-		    endpointPlugin.pushData(hostsData, ahTenant.getId());
+		    endpointPlugin.pushData(data);
 		    log.info("After pushing data for plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
 		} catch (AttestationHubException e) {
 		    log.error("Error pushing data to plugin{}", plugin.getName(), e);

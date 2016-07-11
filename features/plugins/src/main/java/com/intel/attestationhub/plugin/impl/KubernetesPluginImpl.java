@@ -2,7 +2,6 @@ package com.intel.attestationhub.plugin.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intel.attestationhub.api.PublishData;
@@ -15,12 +14,13 @@ public class KubernetesPluginImpl implements EndpointPlugin {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(KubernetesPluginImpl.class);
 
     @Override
-    public void pushData(List<PublishData> data, String tenantId) throws AttestationHubException {
+    public void pushData(PublishData data) throws AttestationHubException {
 	String dir = AttestationHubConfigUtil.get(Constants.ATTESTATION_HUB_TENANT_CONFIGURATIONS_PATH);
-	File file = new File(dir + File.separator + tenantId + "_kubernetes.txt");
+	File file = new File(dir + File.separator + data.tenantId + "_kubernetes.txt");
 	try {
-	    log.info("Creating file to write the data to be published by the Kubernetes plugin: ", file.getAbsolutePath());
-	    boolean createNewFile = file.createNewFile();
+	    log.info("Creating file to write the data to be published by the Kubernetes plugin: ",
+		    file.getAbsolutePath());
+	    file.createNewFile();
 	    log.info("File created");
 	} catch (IOException e) {
 	    String msg = "Error writing data to file";
@@ -31,9 +31,9 @@ public class KubernetesPluginImpl implements EndpointPlugin {
 	ObjectMapper mapper = new ObjectMapper();
 
 	try {
-	    log.info("Writing data");
+	    log.info("Begin publishing kubernetes plugin data");
 	    mapper.writeValue(file, data);
-	    log.info("data writing complete");
+	    log.info("End publishing kubernetes plugin data");
 	} catch (Exception e) {
 	    String msg = "Error converting data to JSON ";
 	    log.error(msg);

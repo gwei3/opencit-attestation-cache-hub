@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -44,6 +45,9 @@ public class AttestationServicePollerJob {
 	if (!lastRunDateTimeFile.exists()) {
 	    isFirstRun = true;
 	}
+	DateTime dt = new DateTime(DateTimeZone.UTC);
+	DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+	String str = fmt.print(dt);
 	Map<String, MWHost> hostAttestationsMap = null;
 	if (isFirstRun) {
 	    log.info("Its the first run for attestation hub. Init data");
@@ -85,7 +89,7 @@ public class AttestationServicePollerJob {
 	    logPollerRunComplete();
 	    return;
 	}
-	writeCurrentTimeToLastRunFile();
+	writeCurrentTimeToLastRunFile(str);
 
 	logPollerRunComplete();
     }
@@ -146,15 +150,12 @@ public class AttestationServicePollerJob {
 	return hostAttestationsMap;
     }
 
-    private void writeCurrentTimeToLastRunFile() {
+    private void writeCurrentTimeToLastRunFile(String str) {
 	// 2016-02-27T00:00:00Z
 
 	if (!lastRunDateTimeFile.exists()) {
 	    return;
 	}
-	DateTime dt = new DateTime();
-	DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
-	String str = fmt.print(dt);
 	try {
 	    FileOutputStream fileOutputStream = new FileOutputStream(lastRunDateTimeFile);
 	    byte[] contentInBytes = str.getBytes();

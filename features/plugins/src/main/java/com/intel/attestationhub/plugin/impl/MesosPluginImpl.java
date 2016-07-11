@@ -2,7 +2,6 @@ package com.intel.attestationhub.plugin.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intel.attestationhub.api.PublishData;
@@ -15,12 +14,11 @@ public class MesosPluginImpl implements EndpointPlugin {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MesosPluginImpl.class);
 
     @Override
-    public void pushData(List<PublishData> data, String tenantId) throws AttestationHubException {
+    public void pushData(PublishData data) throws AttestationHubException {
 	String dir = AttestationHubConfigUtil.get(Constants.ATTESTATION_HUB_TENANT_CONFIGURATIONS_PATH);
-	File file = new File(dir + File.separator + tenantId + "_mesos.txt");
+	File file = new File(dir + File.separator + data.tenantId + "_mesos.txt");
 	try {
 	    log.info("Creating file to write the data to be published by the Mesos plugin: ", file.getAbsolutePath());
-
 	    file.createNewFile();
 	} catch (IOException e) {
 	    String msg = "Error writing data to file";
@@ -31,9 +29,9 @@ public class MesosPluginImpl implements EndpointPlugin {
 	ObjectMapper mapper = new ObjectMapper();
 
 	try {
-	    log.info("Writing data");
+	    log.info("Begin publishing mesos plugin data");
 	    mapper.writeValue(file, data);
-	    log.info("data writing complete");
+	    log.info("Begin publishing mesos plugin data");
 	} catch (Exception e) {
 	    String msg = "Error converting data to JSON ";
 	    log.error(msg);
