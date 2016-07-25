@@ -40,22 +40,16 @@ public class PluginManager {
     }
 
     public void synchAttestationInfo() {
-	log.info("Syncing data to all the hosts and their plugin");
-	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
-	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
-	List<AhTenant> ahTenantList = tenantController.findAhTenantEntities();
+	log.info("Calling out plugins to push host data");
+
+	List<AhTenant> ahTenantList = retrievAllTenants();
 	if (ahTenantList == null) {
-	    log.info("No tenants configured");
+	    return;
 	}
 	log.info("Fetched {} tenants", ahTenantList.size());
 
 	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	for (AhTenant ahTenant : ahTenantList) {
-	    //org.slf4j.MDC.put("logFileName", ahTenant.getId());
-	    if(ahTenant.getDeleted() == null || ahTenant.getDeleted()){
-		log.info("Tenant {} is not active. Skipping. ", ahTenant.getId());
-		continue;
-	    }
 	    Tenant readTenantConfig;
 	    try {
 		readTenantConfig = attestationHubService.readTenantConfig(ahTenant.getId());
@@ -64,17 +58,25 @@ public class PluginManager {
 		log.error("Error reading configuration for the tenant {}", ahTenant.getId(), e);
 		continue;
 	    }
-	    
+
 	    List<Plugin> plugins = readTenantConfig.getPlugins();
 	    Collection<AhMapping> ahMappingCollection = ahTenant.getAhMappingCollection();
 	    List<HostDetails> hostsData = new ArrayList<HostDetails>();
 	    for (AhMapping ahMapping : ahMappingCollection) {
-		AhHost host = ahMapping.getHost();
-		HostDetails details = new HostDetails();
-		details.hardwareUuid = host.getHardwareUuid();
-		details.uuid = host.getId();
-		details.hostName = host.getHostName();
-		details.saml = host.getSamlReport();
+		if (ahMapping.getDeleted() != null && ahMapping.getDeleted()) {
+		    log.info("Mapping {} is not active. Skipping. ", ahMapping.getId());
+		    continue;
+		}
+
+		String hostHardwareUuid = ahMapping.getHostHardwareUuid();
+		AhHost host;
+		try {
+		    host = attestationHubService.findActiveHostByHardwareUuid(hostHardwareUuid);
+		} catch (AttestationHubException e) {
+		    log.error("Unable to find an active host with hardware id={}", hostHardwareUuid, e);
+		    continue;
+		}
+		HostDetails details = populateHostDetails(host);
 		hostsData.add(details);
 	    }
 	    if (hostsData.size() == 0) {
@@ -82,23 +84,65 @@ public class PluginManager {
 		continue;
 	    }
 	    log.info("Publishing data to the configured plugins for the tenant: {}", ahTenant.getId());
-	    for (Plugin plugin : plugins) {
-		try {
-		    PublishData data = new PublishData();
-		    data.plugin = plugin;
-		    data.tenantId = ahTenant.getId();
-		    data.tenantName = ahTenant.getTenantName();
-		    data.hostDetailsList = hostsData;
-		    EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin.getName());
-		    log.info("Before pushing data to plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
-		    endpointPlugin.pushData(data);
-		    log.info("After pushing data for plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
-		} catch (AttestationHubException e) {
-		    log.error("Error pushing data to plugin{}", plugin.getName(), e);
-		    continue;
-		}
-	    }
-	    //org.slf4j.MDC.remove("logFileName");
+	    processDataToPlugins(ahTenant, hostsData, plugins);
 	}
+	log.info("Publishing data to plugins complete");
+    }
+
+    private List<AhTenant> retrievAllTenants() {
+	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
+	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
+	List<AhTenant> ahTenantList = tenantController.findAhTenantEntities();
+	List<AhTenant> activeTenants = null;
+
+	if (ahTenantList == null) {
+	    log.info("No tenants configured");
+	}
+
+	activeTenants = new ArrayList<AhTenant>();
+	for (AhTenant ahTenant : ahTenantList) {
+	    if (ahTenant.getDeleted() != null && ahTenant.getDeleted()) {
+		log.info("Tenant {} is not active. Skipping. ", ahTenant.getId());
+		continue;
+	    }
+	    activeTenants.add(ahTenant);
+	}
+	log.info("Fetched {} tenants", ahTenantList.size());
+	return activeTenants;
+    }
+
+    private HostDetails populateHostDetails(AhHost host) {
+	HostDetails details = new HostDetails();
+	details.hardwareUuid = host.getHardwareUuid();
+	details.uuid = host.getId();
+	details.hardwareUuid = host.getHardwareUuid();
+	details.trust_report = host.getTrustTagsJson();
+	details.signed_trust_report = host.getTrustTagsJson();
+	details.valid_to = host.getValidTo();
+	details.host_name = host.getHostName();
+	details.trusted = host.getTrusted();
+	return details;
+
+    }
+
+    private void processDataToPlugins(AhTenant ahTenant, List<HostDetails> hostsData, List<Plugin> plugins) {
+	if (plugins == null || hostsData == null || ahTenant == null) {
+	    return;
+	}
+	for (Plugin plugin : plugins) {
+	    try {
+		PublishData data = new PublishData();
+		data.tenantId = ahTenant.getId();
+		data.hostDetailsList = hostsData;
+		EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin.getName());
+		log.info("Before pushing data to plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
+		endpointPlugin.pushData(data, plugin);
+		log.info("After pushing data for plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
+	    } catch (AttestationHubException e) {
+		log.error("Error pushing data to plugin{}", plugin.getName(), e);
+		continue;
+	    }
+	}
+
     }
 }

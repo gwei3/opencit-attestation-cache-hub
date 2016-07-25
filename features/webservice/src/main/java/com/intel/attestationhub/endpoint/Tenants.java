@@ -373,8 +373,9 @@ public class Tenants {
 	AttestationHubService attestationHubService = AttestationHubServiceImpl
 		.getInstance();
 	try {
-	    attestationHubService.deleteTenant(id);
 	    tenant = attestationHubService.retrieveTenant(id);
+	    attestationHubService.deleteTenant(id);
+	    tenant.setDeleted(true);
 	} catch (AttestationHubException e) {
 	    ErrorResponse errorResponse = new ErrorResponse(
 		    ErrorCode.REQUEST_PROCESSING_FAILED);

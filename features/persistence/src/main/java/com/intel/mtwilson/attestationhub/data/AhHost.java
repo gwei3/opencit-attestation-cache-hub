@@ -6,25 +6,19 @@
 package com.intel.mtwilson.attestationhub.data;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 
 import javax.persistence.Basic;
 import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
 
 /**
  *
@@ -37,8 +31,8 @@ import javax.xml.bind.annotation.XmlTransient;
 @XmlRootElement
 @NamedQueries({ @NamedQuery(name = "AhHost.findAll", query = "SELECT a FROM AhHost a"),
 	@NamedQuery(name = "AhHost.findById", query = "SELECT a FROM AhHost a WHERE a.id = :id"),
-	@NamedQuery(name = "AhHost.findByHardwareUuid", query = "SELECT a FROM AhHost a WHERE a.hardwareUuid = :hardwareUuid"),
-	@NamedQuery(name = "AhHost.findByHostName", query = "SELECT a FROM AhHost a WHERE a.hostName = :hostName"),
+	@NamedQuery(name = "AhHost.findByHardwareUuid", query = "SELECT a FROM AhHost a WHERE upper(a.hardwareUuid) = :hardwareUuid"),
+	@NamedQuery(name = "AhHost.findByHostName", query = "SELECT a FROM AhHost a WHERE upper(a.hostName) = :hostName"),
 	@NamedQuery(name = "AhHost.findByBiosMleUuid", query = "SELECT a FROM AhHost a WHERE a.biosMleUuid = :biosMleUuid"),
 	@NamedQuery(name = "AhHost.findByVmmMleUuid", query = "SELECT a FROM AhHost a WHERE a.vmmMleUuid = :vmmMleUuid"),
 	@NamedQuery(name = "AhHost.findByAikCertificate", query = "SELECT a FROM AhHost a WHERE a.aikCertificate = :aikCertificate"),
@@ -72,6 +66,8 @@ public class AhHost implements Serializable {
     private String connectionUrl;
     @Column(name = "trust_tags_json")
     private String trustTagsJson;
+    @Column(name = "valid_to")
+    private String validTo;
     @Column(name = "saml_report")
     private String samlReport;
     @Column(name = "created_date")
@@ -83,17 +79,15 @@ public class AhHost implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date modifiedDate;
     @Column(name = "modified_by")
-    private String modifiedBy;
+    private String modifiedBy;    
     private Boolean deleted;
-    @OneToMany(mappedBy = "host")
-    private Collection<AhMapping> ahMappingCollection;
+    @Column(name = "trusted")
+    private Boolean trusted;
 
     public AhHost() {
 	deleted = false;
-	ahMappingCollection = new ArrayList<AhMapping>();
 	createdDate = new Date();
-	modifiedDate= new Date();	
-
+	modifiedDate = new Date();
     }
 
     public AhHost(String id) {
@@ -172,6 +166,14 @@ public class AhHost implements Serializable {
 	this.trustTagsJson = trustTagsJson;
     }
 
+    public String getValidTo() {
+        return validTo;
+    }
+
+    public void setValidTo(String validTo) {
+        this.validTo = validTo;
+    }
+
     public String getSamlReport() {
 	return samlReport;
     }
@@ -219,14 +221,14 @@ public class AhHost implements Serializable {
     public void setDeleted(Boolean deleted) {
 	this.deleted = deleted;
     }
-
-    @XmlTransient
-    public Collection<AhMapping> getAhMappingCollection() {
-	return ahMappingCollection;
+    
+    
+    public Boolean getTrusted() {
+        return trusted;
     }
 
-    public void setAhMappingCollection(Collection<AhMapping> ahMappingCollection) {
-	this.ahMappingCollection = ahMappingCollection;
+    public void setTrusted(Boolean trusted) {
+        this.trusted = trusted;
     }
 
     @Override

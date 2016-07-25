@@ -30,7 +30,7 @@ public interface AttestationHubService {
 
     public List<AhMapping> retrieveAllMappings() throws AttestationHubException;
 
-    public MappingResultResponse createOrUpdateMapping(String tenantId, List<String> hostsId, String mode)
+    public MappingResultResponse createOrUpdateMapping(String tenantId, List<String> hostsId)
 	    throws AttestationHubException;
 
     public void deleteMapping(String mappingId) throws AttestationHubException;
@@ -58,4 +58,9 @@ public interface AttestationHubService {
     public List<AhHost> searchHostsWithSearchCriteria(
 	    HostFilterCriteria hostFilterCriteria)
 	    throws AttestationHubException;
+    
+    public List<AhHost> findHostsByHardwareUuid(String hardwareUuid) throws AttestationHubException;
+    public AhHost findActiveHostByHardwareUuid(String hardwareUuid) throws AttestationHubException;
+    public void markAllHostsAsDeleted() throws AttestationHubException;
+
 }

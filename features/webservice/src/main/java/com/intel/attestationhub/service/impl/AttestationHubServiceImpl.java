@@ -4,8 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.ini4j.InvalidFileFormatException;
@@ -162,6 +165,11 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		    "Tenant with id: " + tenantId + " does not exist");
 	    throw new AttestationHubException(nonexistentEntityException);
 	}
+	if (ahTenant.getDeleted() != null && ahTenant.getDeleted()) {
+	    NonexistentEntityException nonexistentEntityException = new NonexistentEntityException(
+		    "Tenant with id: " + tenantId + " was deleted.");
+	    throw new AttestationHubException(nonexistentEntityException);
+	}
 	newTenant = TenantMapper.mapJpatoApi(ahTenant);
 	return newTenant;
     }
@@ -172,14 +180,21 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
 	List<AhTenant> ahTenants = tenantController.findAhTenantEntities();
+
 	if (ahTenants == null) {
 	    NonexistentEntityException nonexistentEntityException = new NonexistentEntityException(
 		    "Tenants do not exist");
 	    throw new AttestationHubException(nonexistentEntityException);
 	}
+
 	for (AhTenant ahTenant : ahTenants) {
+	    if (ahTenant.getDeleted() != null && ahTenant.getDeleted()) {
+		log.debug("Tenant {} is deleted. Hence not returning in the results", ahTenant.getId());
+		continue;
+	    }
 	    tenants.add(TenantMapper.mapJpatoApi(ahTenant));
 	}
+
 	return tenants;
     }
 
@@ -189,11 +204,18 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
 	AhTenant ahTenant = TenantMapper.mapApiToJpa(tenant);
 	try {
+	    AhTenant existingTenant = tenantController.findAhTenant(tenant.getId());
+	    if (existingTenant.getDeleted() != null && existingTenant.getDeleted()) {
+		throw new AttestationHubException("Unable to edit a tenant that has been marked as deleted");
+	    }
 	    tenantController.edit(ahTenant);
 	} catch (NonexistentEntityException e) {
 	    String msg = "Invalid id: " + tenant.getId();
 	    log.error(msg, e);
 	    throw new AttestationHubException(msg, e);
+	} catch (AttestationHubException e) {
+	    log.error("Error", e);
+	    throw e;
 	} catch (Exception e) {
 	    String msg = "Error updating tenant : " + tenant.getId();
 	    log.error(msg, e);
@@ -243,6 +265,11 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		    "Tenant-Host mapping with id: " + mappingId + " does not exist");
 	    throw new AttestationHubException(nonexistentEntityException);
 	}
+	if (ahMapping.getDeleted() != null && ahMapping.getDeleted()) {
+	    NonexistentEntityException nonexistentEntityException = new NonexistentEntityException(
+		    "Tenant-Host mapping with id: " + mappingId + " has been deleted");
+	    throw new AttestationHubException(nonexistentEntityException);
+	}
 	return ahMapping;
     }
 
@@ -256,93 +283,77 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		    "Tenant-Host mappings do not exist");
 	    throw new AttestationHubException(nonexistentEntityException);
 	}
-	return ahMappings;
+	List<AhMapping> activeMappings = new ArrayList<>();
+	for (AhMapping ahMapping : ahMappings) {
+	    if (ahMapping.getDeleted() != null && ahMapping.getDeleted()) {
+		log.debug(
+			"Mapping {} between tenant: {} and host hardware uuid: {} has been deleted. Skipping from all mapping result",
+			ahMapping.getId(), ahMapping.getTenant().getId(), ahMapping.getHostHardwareUuid());
+		continue;
+	    }
+	    activeMappings.add(ahMapping);
+	}
+	return activeMappings;
     }
 
     @Override
-    public MappingResultResponse createOrUpdateMapping(String tenantId, List<String> hostsIds, String mode)
+    public MappingResultResponse createOrUpdateMapping(String tenantId, List<String> hostHardwareUuids)
 	    throws AttestationHubException {
 	MappingResultResponse mappingResultResponse = new MappingResultResponse();
-	PersistenceServiceFactory hostPersistenceServiceFactory = PersistenceServiceFactory.getInstance();
-	AhHostJpaController hostController = hostPersistenceServiceFactory.getHostController();
 
 	PersistenceServiceFactory tenantPersistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhTenantJpaController tenantController = tenantPersistenceServiceFactory.getTenantController();
 
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhMappingJpaController mappingController = persistenceServiceFactory.getTenantToHostMappingController();
+
 	AhTenant ahTenant = tenantController.findAhTenant(tenantId);
 	// Throw an exception if the tennat id is non existent in hub db
 	if (ahTenant == null) {
 	    throw new AttestationHubException("Tenant does not exist with id : " + tenantId);
 	}
 	Collection<AhMapping> ahMappingCollection = ahTenant.getAhMappingCollection();
-	// update the existing mappings whose host id exists in the one provided
-	// by the user
-	List<AhMapping> mappingToBeDeleted = new ArrayList<>();
+	Set<String> uniqueHostIds = new HashSet<String>(hostHardwareUuids);
+
+	// Update existing mappings if any
+	log.info("Number of unique hardware uuids: {}", uniqueHostIds.size());
 	for (AhMapping ahMapping : ahMappingCollection) {
-	    // If the hosts provided by the user were previously mapped
-	    // but now are not provided by the user, we need to mark that
-	    // mapping as
-	    // deleted
-	    if (!hostsIds.contains(ahMapping.getHost().getId())) {
-		mappingToBeDeleted.add(ahMapping);
-		continue;
-	    }
-
-	    // If the host - tennant was previoulsy done and the host id is sent
-	    // again
-	    // we want to make sure that the deleted flag is set to false
-	    hostsIds.remove(ahMapping.getHost().getId());
-	    ahMapping.setDeleted(false);
-	    try {
-		mappingController.edit(ahMapping);
-	    } catch (NonexistentEntityException e) {
-		String msg = "Invalid mapping id : " + ahMapping.getId();
-		log.error(msg, e);
-		throw new AttestationHubException(msg, e);
-	    } catch (Exception e) {
-		String msg = "Error updating tenant-host mapping";
-		log.error(msg, e);
-		throw new AttestationHubException(msg, e);
-	    }
-	}
-
-	// delete the remaining mappings in case of PUT
-	if (Constants.UPDATE.equals(mode)) {
-	    for (AhMapping ahMapping : mappingToBeDeleted) {
-		ahMapping.setDeleted(true);
-		try {
-		    mappingController.edit(ahMapping);
-		} catch (NonexistentEntityException e) {
-		    log.error("No Mapping exists", e);
-		} catch (Exception e) {
-		    log.error("Error updating mapping", e);
+	    if (ahMapping.getHostHardwareUuid() != null && uniqueHostIds.contains(ahMapping.getHostHardwareUuid())) {
+		log.info("Mapping between tenant: {} and host hardware uuid: {} already exists",
+			ahMapping.getTenant().getId(), ahMapping.getHostHardwareUuid());
+		if (ahMapping.getDeleted() != null && ahMapping.getDeleted()) {
+		    log.info("The mapping was deleted earlier. Reactivating it instead of creating a new one");
+		    ahMapping.setDeleted(false);
+		    try {
+			mappingController.edit(ahMapping);
+		    } catch (NonexistentEntityException e) {
+			String msg = "Invalid mapping id : " + ahMapping.getId();
+			log.error(msg, e);
+			throw new AttestationHubException(msg, e);
+		    } catch (Exception e) {
+			String msg = "Error updating tenant-host mapping";
+			log.error(msg, e);
+			throw new AttestationHubException(msg, e);
+		    }
+		} else {
+		    log.info("Mapping is still active");
 		}
+		// remove the hardware uuid so that duplicate entry is not
+		// created
+		uniqueHostIds.remove(ahMapping.getHostHardwareUuid());
 	    }
 	}
-
+	log.info("Creating mappings for remaning hardware uuids: {}", uniqueHostIds.size());
 	// Create hosts mappings which do not exist for the tenant
-	List<String> uniqueHostIds = new ArrayList<>();
-	for (String hostId : hostsIds) {
-	    if (uniqueHostIds.contains(hostId)) {
-		continue;
-	    } else {
-		uniqueHostIds.add(hostId);
-	    }
-	    AhHost ahHost = hostController.findAhHost(hostId);
-	    if (ahHost == null) {
-		mappingResultResponse.invalidHostIds.add(hostId);
-		continue;
-	    }
+	for (String hostHardwareUuid : uniqueHostIds) {
 	    AhMapping ahMapping = new AhMapping();
-	    ahMapping.setHost(ahHost);
+	    ahMapping.setHostHardwareUuid(hostHardwareUuid);
 	    ahMapping.setTenant(ahTenant);
 	    ahMapping.setDeleted(false);
 	    try {
 		mappingController.create(ahMapping);
 		MappingResultResponse.TenantToHostMapping mapping = new MappingResultResponse.TenantToHostMapping();
-		mapping.hostId = hostId;
+		mapping.hostHardwareUuid = hostHardwareUuid;
 		mapping.mappingId = ahMapping.getId();
 		mapping.tenantId = ahTenant.getId();
 		mappingResultResponse.mappings.add(mapping);
@@ -352,7 +363,8 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		log.error(msg, e);
 		throw new AttestationHubException(msg, e);
 	    } catch (Exception e) {
-		String msg = "Error creating tenant-host mapping for tenant: " + tenantId + " and host: " + hostId;
+		String msg = "Error creating tenant-host mapping for tenant: " + tenantId + " and host: "
+			+ hostHardwareUuid;
 		log.error(msg, e);
 		throw new AttestationHubException(msg, e);
 	    }
@@ -415,11 +427,36 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	    log.info("Processing save for host ID : {} and name: {}", host.getId(), host.getName());
 	    AhHost ahHost = hostController.findAhHost(host.getId().toString());
 	    log.info("Does the host already exist in Attestation Hub DB ? {}", ahHost != null);
+
+	    // In a case where a host was added previously, but later was
+	    // deleted from MTW and re added,
+	    // the UUID would be different, but the hardware uuid would be the
+	    // same. In this case
+	    // we would want to disable the earlier record
 	    if (ahHost != null) {
 		ahHostExists = true;
+	    } else {
+		List<AhHost> findHostsByHardwareUuid = hostController.findHostsByHardwareUuid(host.getHardwareUuid());
+		if (findHostsByHardwareUuid != null) {
+		    // In this case we want to disable all these records
+		    for (AhHost ahHost2 : findHostsByHardwareUuid) {
+			ahHost2.setDeleted(true);
+			ahHost2.setModifiedDate(new Date());
+			try {
+			    hostController.edit(ahHost2);
+			} catch (PreexistingEntityException e) {
+			    log.error("Error updating host {} since host already exists", ahHost2.getId(), e);
+			    throw new AttestationHubException(e);
+			} catch (Exception e) {
+			    log.error("Error updating host", e);
+			    throw new AttestationHubException(e);
+			}
+		    }
+		}
 	    }
 	    ahHost = HostMapper.mapHostToAhHost(mwHost, ahHost, "admin");
 	    ahHost.setDeleted(false);
+
 	    try {
 		if (ahHostExists) {
 		    hostController.edit(ahHost);
@@ -445,10 +482,14 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	AhTenantJpaController tenantController = PersistenceServiceFactory.getInstance().getTenantController();
 	List<Tenant> tenantsList = new ArrayList<Tenant>();
 	List<AhTenant> ahTenantsList = tenantController
-		.findAhTenantsByNameSearchCriteria(tenantFilterCriteria.nameEqualTo);
+		.findAhTenantsByNameSearchCriteria(tenantFilterCriteria.nameEqualTo.toUpperCase());
 	if (ahTenantsList != null) {
 	    log.info("Found {} tenants with name : {}", ahTenantsList.size(), tenantFilterCriteria.nameEqualTo);
 	    for (AhTenant ahTenant : ahTenantsList) {
+		if (ahTenant.getDeleted() != null && ahTenant.getDeleted()) {
+		    log.debug("Tenant {} has been deleted. Skipping from search results", ahTenant.getId());
+		    continue;
+		}
 		tenantsList.add(TenantMapper.mapJpatoApi(ahTenant));
 	    }
 	}
@@ -463,12 +504,25 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	List<AhMapping> ahMappings = new ArrayList<>();
 	if (StringUtils.isNotBlank(criteriaForMapping.tenantId)) {
 	    ahMappings = mappingController.findAhMappingsByTenantId(criteriaForMapping.tenantId);
-	} else if (StringUtils.isNotBlank(criteriaForMapping.hostId)) {
-	    ahMappings = mappingController.findAhMappingsByHostId(criteriaForMapping.hostId);
+	} else if (StringUtils.isNotBlank(criteriaForMapping.hostHardwareUuid)) {
+	    ahMappings = mappingController.findAhMappingsByHostHardwareUuid(criteriaForMapping.hostHardwareUuid);
 	} else {
 	    ahMappings = null;
 	}
-	return ahMappings;
+	if (ahMappings == null) {
+	    return ahMappings;
+	}
+	List<AhMapping> activeMappings = new ArrayList<>();
+	for (AhMapping ahMapping : ahMappings) {
+	    if (ahMapping.getDeleted() != null && ahMapping.getDeleted()) {
+		log.debug(
+			"Mapping {} between tenant: {} and host hardware uuid: {} has been deleted. Skipping from all mapping result",
+			ahMapping.getId(), ahMapping.getTenant().getId(), ahMapping.getHostHardwareUuid());
+		continue;
+	    }
+	    activeMappings.add(ahMapping);
+	}
+	return activeMappings;
     }
 
     @Override
@@ -482,6 +536,13 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		    "Host with id: " + id + " does not exist");
 	    throw new AttestationHubException(nonexistentEntityException);
 	}
+	if (ahHost.getDeleted() != null && ahHost.getDeleted()) {
+	    log.debug("The host was marked as deleted. Hence returning 404");
+	    NonexistentEntityException nonexistentEntityException = new NonexistentEntityException(
+		    "Host with id: " + id + " was deleted");
+	    throw new AttestationHubException(nonexistentEntityException);
+	}
+
 	return ahHost;
     }
 
@@ -491,7 +552,18 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhHostJpaController ahHostJpaController = persistenceServiceFactory.getHostController();
 	List<AhHost> ahHosts = ahHostJpaController.findAhHostEntities();
-	return ahHosts;
+	List<AhHost> activeHosts = null;
+	if (ahHosts != null) {
+	    activeHosts = new ArrayList<>();
+	    for (AhHost ahHost : ahHosts) {
+		if (ahHost.getDeleted() != null && ahHost.getDeleted()) {
+		    log.debug("The host was marked as deleted. Hence skipping.");
+		    continue;
+		}
+		activeHosts.add(ahHost);
+	    }
+	}
+	return activeHosts;
     }
 
     @Override
@@ -500,12 +572,81 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhHostJpaController ahHostJpaController = persistenceServiceFactory.getHostController();
 	List<AhHost> ahHosts = ahHostJpaController.findHostsWithFilterCriteria(hostFilterCriteria.nameEqualTo);
+	List<AhHost> activeHosts = null;
 	if (ahHosts != null) {
 	    log.info("Found {} host with given filter criteria {}", ahHosts.size(), hostFilterCriteria.nameEqualTo);
+	    activeHosts = new ArrayList<>();
+
+	    for (AhHost ahHost : ahHosts) {
+		if (ahHost.getDeleted() != null && ahHost.getDeleted()) {
+		    log.debug("The host was marked as deleted. Hence skipping.");
+		    continue;
+		}
+		activeHosts.add(ahHost);
+	    }
 	} else {
 	    log.info("No hosts found with given filter criteria {}", hostFilterCriteria.nameEqualTo);
 	}
-	return ahHosts;
+	return activeHosts;
     }
 
+    @Override
+    public List<AhHost> findHostsByHardwareUuid(String hardwareUuid) throws AttestationHubException {
+	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
+	AhHostJpaController ahHostJpaController = persistenceServiceFactory.getHostController();
+	hardwareUuid = hardwareUuid.toUpperCase();
+	List<AhHost> ahHosts = ahHostJpaController.findHostsByHardwareUuid(hardwareUuid);
+	List<AhHost> activeHosts = null;
+	if (ahHosts != null) {
+	    log.info("Found {} host with given hardware id {}", ahHosts.size(), hardwareUuid);
+	    for (AhHost ahHost : ahHosts) {
+		if (ahHost.getDeleted() != null && ahHost.getDeleted()) {
+		    log.debug("Host: {} has been deleted", ahHost.getId());
+		    continue;
+		} else {
+		    if (activeHosts == null) {
+			activeHosts = new ArrayList<>();
+		    }
+		}
+		activeHosts.add(ahHost);
+	    }
+
+	} else {
+	    log.info("No hosts found with given host hardware uuid {}", hardwareUuid);
+	}
+
+	return activeHosts;
+
+    }
+
+    @Override
+    public AhHost findActiveHostByHardwareUuid(String hardwareUuid) throws AttestationHubException {
+	List<AhHost> findHostsByHardwareUuid = findHostsByHardwareUuid(hardwareUuid);
+	log.info("Finding active host");
+
+	if (findHostsByHardwareUuid == null) {
+	    throw new AttestationHubException("Unable to find an active host with hardware id: " + hardwareUuid);
+	}
+	AhHost ahHost = findHostsByHardwareUuid.get(0);
+	return ahHost;
+    }
+
+    @Override
+    public void markAllHostsAsDeleted() throws AttestationHubException {
+	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
+	AhHostJpaController ahHostJpaController = persistenceServiceFactory.getHostController();
+	List<AhHost> ahHosts = ahHostJpaController.findAhHostEntities();
+	for (AhHost ahHost : ahHosts) {
+	    ahHost.setDeleted(true);
+	    try {
+		ahHostJpaController.edit(ahHost);
+	    } catch (NonexistentEntityException e) {
+		String msg = "Invalid host id: " + ahHost.getId();
+		log.error(msg, e);
+	    } catch (Exception e) {
+		String msg = "Error updating host as deleted: " + ahHost.getId();
+		log.error(msg, e);
+	    }
+	}
+    }
 }

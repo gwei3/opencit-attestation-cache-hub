@@ -2,24 +2,40 @@ package com.intel.attestationhub.mtwclient;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateEncodingException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.intel.attestationhub.api.MWHost;
 import com.intel.dcsg.cpg.configuration.Configuration;
+import com.intel.dcsg.cpg.crypto.CryptographyException;
+import com.intel.dcsg.cpg.extensions.Extensions;
 import com.intel.mtwilson.Folders;
 import com.intel.mtwilson.api.ApiException;
+import com.intel.mtwilson.api.ClientException;
 import com.intel.mtwilson.as.rest.v2.model.Host;
 import com.intel.mtwilson.as.rest.v2.model.HostAttestation;
 import com.intel.mtwilson.as.rest.v2.model.HostAttestationCollection;
@@ -37,12 +53,18 @@ import com.intel.mtwilson.attestationhub.exception.AttestationHubException;
 import com.intel.mtwilson.attestationhub.service.PersistenceServiceFactory;
 import com.intel.mtwilson.configuration.ConfigurationFactory;
 import com.intel.mtwilson.configuration.ConfigurationProvider;
+import com.intel.mtwilson.policy.TrustReport;
 import com.intel.mtwilson.saml.TrustAssertion;
+import com.intel.mtwilson.tls.policy.factory.TlsPolicyCreator;
+import com.intel.mtwilson.v2.client.MwClientUtil;
 
+@SuppressWarnings("deprecation")
 public class AttestationServiceClient {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AttestationServiceClient.class);
 
     private static Properties mtwProperties = new Properties();
+    private static Properties mtwPropertiesForverification = new Properties();
+
     static {
 	File hubPropertiesFile = new File(
 		Folders.configuration() + File.separator + Constants.ATTESTATION_HUB_PROPRRTIES_FILE_NAME);
@@ -50,17 +72,74 @@ public class AttestationServiceClient {
 	try {
 	    ConfigurationProvider provider = ConfigurationFactory.createConfigurationProvider(hubPropertiesFile);
 	    Configuration loadedConfiguration = provider.load();
-	    mtwProperties.setProperty(Constants.MTWILSON_API_PASSWORD,
-		    loadedConfiguration.get(Constants.MTWILSON_API_PASSWORD));
+
+	    Extensions.register(TlsPolicyCreator.class,
+		    com.intel.mtwilson.tls.policy.creator.impl.CertificateDigestTlsPolicyCreator.class);
+
+	    URL server = new URL(AttestationHubConfigUtil.get(Constants.MTWILSON_API_URL));
+	    String user = AttestationHubConfigUtil.get(Constants.MTWILSON_API_USER);
+
+	    String password = loadedConfiguration.get(Constants.MTWILSON_API_PASSWORD);
+	    Properties properties = new Properties();
+	    properties.setProperty("mtwilson.api.tls.policy.certificate.sha1",
+		    loadedConfiguration.get(Constants.MTWILSON_API_TLS));
+	    String comment = formatCommentRequestedRoles("Attestation", "Challenger");
+	    File folder = new File(Folders.configuration());
+	    MwClientUtil.createUserInDirectoryV2(folder, user, password, server, comment, properties);
+
+	    String keystore = Folders.configuration() + File.separator + user + ".jks";
+
+	    log.info("Keystore path = {}", keystore);
+	    mtwProperties.setProperty(Constants.MTWILSON_API_PASSWORD, password);
 	    mtwProperties.setProperty(Constants.MTWILSON_API_TLS, loadedConfiguration.get(Constants.MTWILSON_API_TLS));
 	    mtwProperties.setProperty(Constants.MTWILSON_API_URL, loadedConfiguration.get(Constants.MTWILSON_API_URL));
 	    mtwProperties.setProperty(Constants.MTWILSON_API_USER,
 		    loadedConfiguration.get(Constants.MTWILSON_API_USER));
+
+	    // Verification settings
+	    mtwPropertiesForverification = new Properties(mtwProperties);
+	    mtwPropertiesForverification.setProperty("mtwilson.api.keystore", keystore);
+	    mtwPropertiesForverification.setProperty("mtwilson.api.keystore.password", password);
+	    mtwPropertiesForverification.setProperty("mtwilson.api.key.alias", user);
+	    mtwPropertiesForverification.setProperty("mtwilson.api.key.password", password);
+
 	} catch (IOException e) {
 	    String errorMsg = "Error reading configuration for MTW client";
 	    log.error(errorMsg, e);
 	    mtwProperties = null;
+	} catch (ApiException e) {
+	    String errorMsg = "Error reading configuration for MTW client";
+	    log.error(errorMsg, e);
+	    mtwProperties = null;
+	} catch (CryptographyException e) {
+	    String errorMsg = "Error reading configuration for MTW client";
+	    log.error(errorMsg, e);
+	    mtwProperties = null;
+	} catch (ClientException e) {
+	    String errorMsg = "Error reading configuration for MTW client";
+	    log.error(errorMsg, e);
+	    mtwProperties = null;
 	}
+    }
+
+    private static String formatCommentRequestedRoles(String... roles) throws JsonProcessingException {
+	UserComment userComment = new UserComment();
+	userComment.roles.addAll(Arrays.asList(roles));
+	ObjectMapper yaml = createYamlMapper();
+	return yaml.writeValueAsString(userComment);
+    }
+
+    private static class UserComment {
+	public HashSet<String> roles = new HashSet<>();
+    }
+
+    private static ObjectMapper createYamlMapper() {
+	YAMLFactory yamlFactory = new YAMLFactory();
+	yamlFactory.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+	yamlFactory.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
+	ObjectMapper mapper = new ObjectMapper(yamlFactory);
+	mapper.setPropertyNamingStrategy(new PropertyNamingStrategy.LowerCaseWithUnderscoresStrategy());
+	return mapper;
     }
 
     public static AttestationServiceClient getInstance() {
@@ -79,6 +158,9 @@ public class AttestationServiceClient {
 	log.info("Fetching host attestations");
 	Map<String, MWHost> hostIdToMwHostMap = new HashMap<>(hosts.size());
 	HostAttestations hostAttestationsService = MtwClientFactory.getHostAttestationsClient(mtwProperties);
+	HostAttestations hostAttestationVerificationService = MtwClientFactory
+		.getHostAttestationsClient(mtwPropertiesForverification);
+
 	for (Host host : hosts) {
 	    String hostId = host.getId().toString();
 	    log.info("Retrieveing attestation for host: {}", hostId);
@@ -86,11 +168,15 @@ public class AttestationServiceClient {
 	    criteria.nameEqualTo = host.getName();
 	    criteria.limit = 1;
 	    HostAttestationCollection searchHostAttestations = null;
+
 	    try {
 		searchHostAttestations = hostAttestationsService.searchHostAttestations(criteria);
 	    } catch (Exception e) {
 		log.error("Unable to get host attestations for host with ID={} and name={}", host.getId().toString(),
 			host.getName(), e);
+		if (e instanceof ConnectException) {
+		    throw new AttestationHubException("Cannot connect to attestation service", e);
+		}
 		continue;
 	    }
 	    if (searchHostAttestations != null && searchHostAttestations.getHostAttestations() != null
@@ -99,6 +185,16 @@ public class AttestationServiceClient {
 		HostAttestation hostAttestation = searchHostAttestations.getHostAttestations().get(0);
 		mwHost.setHost(host);
 		mwHost.setMwHostAttestation(hostAttestation);
+		TrustAssertion assertion = convertSamlToTrustAssertion(hostAttestationVerificationService,
+			hostAttestation.getSaml());
+		if (assertion == null) {
+		    log.error("Unable to verify trust assertion for host : {}", host.getId());
+		    continue;
+		}
+		String str = convertDateToUTCString(assertion.getNotAfter());
+		mwHost.setSamlValidTo(str);		
+		TrustReport trustReport = hostAttestation.getTrustReport();
+		mwHost.setTrusted(trustReport.isTrusted());
 		hostIdToMwHostMap.put(hostId, mwHost);
 		log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(),
 			host.getId(), host.getName());
@@ -123,6 +219,9 @@ public class AttestationServiceClient {
 	    objCollection = hostsService.searchHosts(criteria);
 	} catch (Exception e) {
 	    log.error("Error while fetching hosts from Attestation Service as part of poller", e);
+	    if (e instanceof ConnectException) {
+		throw new AttestationHubException("Cannot connect to attestation service", e);
+	    }
 	    throw new AttestationHubException(e);
 	}
 	if (objCollection != null && objCollection.getHosts() != null && objCollection.getHosts().size() > 0) {
@@ -147,15 +246,22 @@ public class AttestationServiceClient {
 	log.info("Fetching host attestations added since {}", lastDateTimeFromLastRunFile);
 	Map<String, MWHost> hostIdToMwHostMap = new HashMap<>();
 	HostAttestations hostAttestationsService = MtwClientFactory.getHostAttestationsClient(mtwProperties);
+	HostAttestations hostAttestationVerificationService = MtwClientFactory
+		.getHostAttestationsClient(mtwPropertiesForverification);
+
 	Hosts hostsService = MtwClientFactory.getHostsClient(mtwProperties);
 
 	HostAttestationFilterCriteria criteria = new HostAttestationFilterCriteria();
 	criteria.createdDate = lastDateTimeFromLastRunFile;
 	HostAttestationCollection searchHostAttestations = null;
+
 	try {
 	    searchHostAttestations = hostAttestationsService.searchHostAttestations(criteria);
 	} catch (Exception e) {
 	    log.error("Unable to get host attestations for from date : {}", lastDateTimeFromLastRunFile, e);
+	    if (e instanceof ConnectException) {
+		throw new AttestationHubException("Cannot connect to attestation service", e);
+	    }
 	    return null;
 	}
 
@@ -166,6 +272,15 @@ public class AttestationServiceClient {
 		String hostUuid = hostAttestation.getHostUuid();
 		MWHost mwHost = new MWHost();
 		mwHost.setMwHostAttestation(hostAttestation);
+		TrustAssertion assertion = convertSamlToTrustAssertion(hostAttestationVerificationService,
+			hostAttestation.getSaml());
+		if (assertion == null) {
+		    log.error("Unable to verify trust assertion for host : {}", hostAttestation.getHostUuid());
+		    continue;
+		}
+
+		String str = convertDateToUTCString(assertion.getNotAfter());
+		mwHost.setSamlValidTo(str);
 		Host citHost = hostsService.retrieveHost(hostUuid);
 		mwHost.setHost(citHost);
 		hostIdToMwHostMap.put(hostUuid, mwHost);
@@ -180,51 +295,34 @@ public class AttestationServiceClient {
 	log.info("updating deleted status of hosts depending on the expiry of saml");
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhHostJpaController ahHostJpaController = persistenceServiceFactory.getHostController();
-	HostAttestations hostAttestationsService = MtwClientFactory.getHostAttestationsClient(mtwProperties);
+	HostAttestations hostAttestationsService = MtwClientFactory
+		.getHostAttestationsClient(mtwPropertiesForverification);
+
 	List<AhHost> ahHostEntities = ahHostJpaController.findAhHostEntities();
 	log.info("Fetched {} hosts from attests hub db", ahHostEntities.size());
-	String samlTimeoutStr = AttestationHubConfigUtil.get(Constants.ATTESTATION_HUB_SAML_TIMEOUT, "90");
-	int samlTimeout = 0;
-	try {
-	    samlTimeout = Integer.parseInt(samlTimeoutStr);
-	} catch (NumberFormatException numberFormatException) {
-	    log.error("Error converting timeout time '{}' to int. Setting to default of 90", samlTimeoutStr);
-	}
 
 	for (AhHost ahHost : ahHostEntities) {
-	    log.info("Processing saml verification for host: {}",ahHost.getId());
+	    log.info("Processing saml verification for host: {}", ahHost.getId());
 	    String samlReport = ahHost.getSamlReport();
-	    TrustAssertion verifyTrustAssertion = null;
-	    try {
-		verifyTrustAssertion = hostAttestationsService.verifyTrustAssertion(samlReport);
-	    } catch (KeyManagementException e) {
-		log.error("KeyManagementException: Error verifying saml", e);
-	    } catch (CertificateEncodingException e) {
-		log.error("CertificateEncodingException: Error verifying saml", e);
-	    } catch (KeyStoreException e) {
-		log.error("KeyStoreException: Error verifying saml", e);
-	    } catch (NoSuchAlgorithmException e) {
-		log.error("NoSuchAlgorithmException: Error verifying saml", e);
-	    } catch (UnrecoverableEntryException e) {
-		log.error("UnrecoverableEntryException: Error verifying saml", e);
-	    } catch (ApiException e) {
-		log.error("ApiException: Error verifying saml", e);
-	    }
-	    
+
+	    TrustAssertion verifyTrustAssertion = convertSamlToTrustAssertion(hostAttestationsService, samlReport);
 	    if (verifyTrustAssertion == null) {
 		log.info("No verification report for host: {}", ahHost.getId());
 		continue;
 	    }
 
-	    Date issueDate = verifyTrustAssertion.getDate();
-	    DateTime samlIssueDateTime = new DateTime(issueDate);
-	    DateTime samlExpiryDateTime = samlIssueDateTime.plusMinutes(samlTimeout);
-	    log.info("Host : {} has saml issue date : {} ", ahHost.getId(), samlIssueDateTime.toDate());
-	    log.info("(samlExpiryDateTime.isAfterNow() : {}", samlExpiryDateTime.isAfterNow() );
-	    log.info("samlExpiryDateTime.isEqualNow(): {}", samlExpiryDateTime.isEqualNow());
-	    if (samlExpiryDateTime.isAfterNow() || samlExpiryDateTime.isEqualNow()) {
+	    DateTime currentDateTime = new DateTime(DateTimeZone.UTC);
+	    Date notAfter = verifyTrustAssertion.getNotAfter();
+	    DateTime notOnOrAfter = new DateTime(notAfter.getTime(), DateTimeZone.UTC);
+	    log.info("Current Date : {} and saml notOnOrAfter : {}", currentDateTime, notOnOrAfter);
+	    log.info("notOnOrAfter.isBeforeNow() = {} and  notOnOrAfter.isEqualNow() = {}", notOnOrAfter.isBeforeNow(),
+		    notOnOrAfter.isEqualNow());
+	    if (notOnOrAfter.isBeforeNow() || notOnOrAfter.isEqualNow()) {
+		Date issueDate = verifyTrustAssertion.getDate();
+		DateTime issueDateUTC = new DateTime(issueDate.getTime(), DateTimeZone.UTC);
+
 		log.info("Marking host : {} as deleted as the saml issue date is {} and expiring now which is {}",
-			ahHost.getId(), samlIssueDateTime.toDate(), new Date());
+			ahHost.getId(), issueDateUTC, currentDateTime);
 
 		ahHost.setDeleted(true);
 		try {
@@ -240,4 +338,31 @@ public class AttestationServiceClient {
 	log.info("Update of deleted status of hosts depending on the expiry of saml completed");
     }
 
+    private TrustAssertion convertSamlToTrustAssertion(HostAttestations hostAttestationsService, String saml)
+	    throws AttestationHubException {
+	TrustAssertion verifyTrustAssertion = null;
+	try {
+	    verifyTrustAssertion = hostAttestationsService.verifyTrustAssertion(saml);
+	} catch (KeyManagementException e) {
+	    log.error("KeyManagementException: Error verifying saml", e);
+	} catch (CertificateEncodingException e) {
+	    log.error("CertificateEncodingException: Error verifying saml", e);
+	} catch (KeyStoreException e) {
+	    log.error("KeyStoreException: Error verifying saml", e);
+	} catch (NoSuchAlgorithmException e) {
+	    log.error("NoSuchAlgorithmException: Error verifying saml", e);
+	} catch (UnrecoverableEntryException e) {
+	    log.error("UnrecoverableEntryException: Error verifying saml", e);
+	} catch (ApiException e) {
+	    log.error("ApiException: Error verifying saml", e);
+	}
+	return verifyTrustAssertion;
+
+    }
+
+    private String convertDateToUTCString(Date date) {
+	DateTime dt = new DateTime(date.getTime(), DateTimeZone.UTC);
+	DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+	return fmt.print(dt);
+    }
 }

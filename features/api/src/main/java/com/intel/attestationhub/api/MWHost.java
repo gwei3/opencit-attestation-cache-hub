@@ -6,6 +6,8 @@ import com.intel.mtwilson.as.rest.v2.model.HostAttestation;
 public class MWHost {
     private Host host;
     private HostAttestation mwHostAttestation;
+    private String samlValidTo;
+    private Boolean trusted;
 
     public Host getHost() {
 	return host;
@@ -21,6 +23,22 @@ public class MWHost {
 
     public void setMwHostAttestation(HostAttestation mwHostAttestation) {
 	this.mwHostAttestation = mwHostAttestation;
+    }
+
+    public String getSamlValidTo() {
+	return samlValidTo;
+    }
+
+    public void setSamlValidTo(String samlValidTo) {
+	this.samlValidTo = samlValidTo;
+    }
+
+    public Boolean getTrusted() {
+	return trusted;
+    }
+
+    public void setTrusted(Boolean trusted) {
+	this.trusted = trusted;
     }
 
 }

@@ -297,10 +297,10 @@ echo "export JAVA_REQUIRED_VERSION=$JAVA_REQUIRED_VERSION" >> $ATTESTATION_HUB_E
 #echo libguestfs-tools libguestfs/update-appliance boolean true | debconf-set-selections
 
 # make sure unzip and authbind are installed
-#DIRECTOR_YUM_PACKAGES="zip unzip authbind qemu-utils expect openssl sshfs kpartx libguestfs-tools lvm2"
-#DIRECTOR_APT_PACKAGES="zip  unzip authbind qemu-utils expect openssl sshfs kpartx libguestfs-tools lvm2" #vdfuse"
-#DIRECTOR_YAST_PACKAGES="zip unzip authbind qemu-utils expect openssl sshfs kpartx libguestfs-tools lvm2"
-#DIRECTOR_ZYPPER_PACKAGES="zip  unzip authbind qemu-utils expect openssl sshfs kpartx libguestfs-tools lvm2"
+ATTESTATION_HUB_YUM_PACKAGES="zip unzip authbind"
+ATTESTATION_HUB_APT_PACKAGES="zip  unzip authbind"
+ATTESTATION_HUB_YAST_PACKAGES="zip unzip authbind"
+ATTESTATION_HUB_ZYPPER_PACKAGES="zip  unzip authbind"
 auto_install "Installer requirements" "ATTESTATION_HUB"
 if [ $? -ne 0 ]; then echo_failure "Failed to install prerequisites through package installer"; exit -1; fi
 

@@ -7,13 +7,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MappingResultResponse {
 
-    @JsonProperty("invalid_host_ids")
-    public List<String> invalidHostIds;
     public List<TenantToHostMapping> mappings;
 
     public MappingResultResponse() {
 	super();
-	invalidHostIds = new ArrayList<>();
 	mappings = new ArrayList<>();
     }
 
@@ -22,7 +19,7 @@ public class MappingResultResponse {
 	public String mappingId;
 	@JsonProperty("tenant_id")
 	public String tenantId;
-	@JsonProperty("host_id")
-	public String hostId;
+	@JsonProperty("hardware_uuid")
+	public String hostHardwareUuid;
     }
 }

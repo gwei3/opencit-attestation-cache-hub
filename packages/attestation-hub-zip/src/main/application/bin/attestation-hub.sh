@@ -312,9 +312,9 @@ scheduler_stop() {
 # they will not be removed, so you could configure ATTESTATION_HUB_CONFIGURATION=/etc/attestation-hub
 # and ATTESTATION_HUB_REPOSITORY=/var/opt/attestation-hub and then they would not be deleted by this.
 attestation_hub_uninstall() {
-attestation_hub_stop
-scheduler_stop
-remove_startup_script attestation-hub
+	attestation_hub_stop
+	scheduler_stop
+	remove_startup_script attestation-hub
 
 
 if [ "$2" = "--purge" ]; then

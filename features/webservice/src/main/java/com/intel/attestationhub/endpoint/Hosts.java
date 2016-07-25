@@ -38,8 +38,7 @@ import com.intel.mtwilson.launcher.ws.ext.V2;
 @V2
 @Path("/hosts")
 public class Hosts {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory
-	    .getLogger(Hosts.class);
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Hosts.class);
 
     /**
      * Retrieve the host information by providing the host id in the URL
@@ -79,7 +78,7 @@ public class Hosts {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param id
      *            ID of the host
@@ -89,27 +88,24 @@ public class Hosts {
     @Path("/{id:[0-9a-zA-z_-]+}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getHost(@PathParam("id") String id) {
-	//Validate the ID
+	// Validate the ID
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
 	    errorResponse.detailErrors = "Host Id is not in UUID format";
-	    return Response.status(Response.Status.BAD_REQUEST)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	AhHost host;
 	try {
-	    //Fetch the host
+	    // Fetch the host
 	    host = attestationHubService.getHostById(id);
 	} catch (AttestationHubException e) {
 	    log.error("Error in getting host info");
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
-	    //This error code is if the service throws a non existent entity exception
+	    // This error code is if the service throws a non existent entity
+	    // exception
 	    if (e.getCause() instanceof NonexistentEntityException) {
 		status = Response.Status.NOT_FOUND;
 	    }
@@ -119,15 +115,13 @@ public class Hosts {
     }
 
     public Response getHosts() {
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	List<AhHost> hosts = null;
 	try {
 	    hosts = attestationHubService.getHosts();
 	} catch (AttestationHubException e) {
 	    log.error("Error in getting all hosts info");
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
 	    return Response.status(status).entity(errorResponse).build();
@@ -179,7 +173,7 @@ public class Hosts {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param hostFilterCriteria
      *            The pojo representation of the host filter criteria
@@ -187,23 +181,18 @@ public class Hosts {
      */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response searchHosts(
-	    @BeanParam HostFilterCriteria hostFilterCriteria,
+    public Response searchHosts(@BeanParam HostFilterCriteria hostFilterCriteria,
 	    @Context HttpServletRequest httpServletRequest) {
-	log.info("searching for hosts with name : {}",
-		hostFilterCriteria.nameEqualTo);
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	log.info("searching for hosts with name : {}", hostFilterCriteria.nameEqualTo);
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	List<AhHost> ahHosts = null;
 	if (StringUtils.isBlank(httpServletRequest.getQueryString())) {
 	    return getHosts();
 	}
 	String validate = hostFilterCriteria.validate();
 	if (StringUtils.isNotBlank(validate)) {
-	    log.error("Invalid Filter criteria for host {}",
-		    hostFilterCriteria.nameEqualTo);
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.VALIDATION_FAILED);
+	    log.error("Invalid Filter criteria for host {}", hostFilterCriteria.nameEqualTo);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.VALIDATION_FAILED);
 	    errorResponse.detailErrors = validate;
 	    Status status = Response.Status.BAD_REQUEST;
 	    return Response.status(status).entity(errorResponse).build();
@@ -211,15 +200,12 @@ public class Hosts {
 	}
 
 	try {
-	    ahHosts = attestationHubService
-		    .searchHostsWithSearchCriteria(hostFilterCriteria);
+	    ahHosts = attestationHubService.searchHostsWithSearchCriteria(hostFilterCriteria);
 	} catch (AttestationHubException e) {
 	    log.error("Error in searching host with given filter criteria");
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
-	    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errorResponse).build();
 	}
 	return Response.ok(ahHosts).build();
     }

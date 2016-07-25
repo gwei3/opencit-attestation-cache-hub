@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class AttestationServicePollerJob {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AttestationServicePollerJob.class);
     private AttestationServiceClient attestationServiceClient = null;
     private File lastRunDateTimeFile;
+    private static boolean isRetry = false;
 
     public AttestationServicePollerJob() {
 	attestationServiceClient = AttestationServiceClient.getInstance();
@@ -42,7 +44,12 @@ public class AttestationServicePollerJob {
 	String lastRunDateTimeFileName = Folders.configuration() + File.separator + "HubSchedulerRun.txt";
 	lastRunDateTimeFile = new File(lastRunDateTimeFileName);
 	boolean isFirstRun = false;
-	if (!lastRunDateTimeFile.exists()) {
+	if (lastRunDateTimeFile.exists()) {
+	    String lastDateTimeFromLastRunFile = readDateTimeFromLastRunFile();
+	    if (StringUtils.isBlank(lastDateTimeFromLastRunFile)) {
+		isFirstRun = true;
+	    }
+	} else {
 	    isFirstRun = true;
 	}
 	DateTime dt = new DateTime(DateTimeZone.UTC);
@@ -65,10 +72,12 @@ public class AttestationServicePollerJob {
 
 	}
 
-	if(hostAttestationsMap == null){
-	    log.error("Attestation data not received from MTW. Some error receiving host attestations data to be pushed in Attestation Hub DB");
+	if (hostAttestationsMap == null) {
+	    log.error(
+		    "Attestation data not received from MTW. Some error receiving host attestations data to be pushed in Attestation Hub DB");
 	    return;
 	}
+
 	/*
 	 * Add the hosts in the DB
 	 */
@@ -80,15 +89,17 @@ public class AttestationServicePollerJob {
 	    logPollerRunComplete();
 	    return;
 	}
-	
-	//Delete hosts whose SAML has exceeded the timeout
+
+	// Delete hosts whose SAML has exceeded the timeout
 	try {
 	    attestationServiceClient.updateHostsForSamlTimeout();
 	} catch (AttestationHubException e) {
-	    log.error("Poller.execute: Error updating deleted status of hosts in Attestation Hub DB for SAML timeout", e);
+	    log.error("Poller.execute: Error updating deleted status of hosts in Attestation Hub DB for SAML timeout",
+		    e);
 	    logPollerRunComplete();
 	    return;
 	}
+	log.info("Updating the file with the latest run date: {}", str);
 	writeCurrentTimeToLastRunFile(str);
 
 	logPollerRunComplete();
@@ -109,6 +120,9 @@ public class AttestationServicePollerJob {
 	} catch (AttestationHubException e) {
 	    log.error("Poller.execute: Error fetching host attestations created since {} from MTW",
 		    lastDateTimeFromLastRunFile, e);
+	    if (e.getMessage().indexOf("java.net.ConnectException: Connection refused") != 1) {
+		waitForAttestationServiceAndRetry();
+	    }
 	    logPollerRunComplete();
 	    return null;
 	}
@@ -130,6 +144,9 @@ public class AttestationServicePollerJob {
 	    }
 	} catch (AttestationHubException e) {
 	    log.error("AttestationServicePollerJob.execute - Error fetching hosts from MTW", e);
+	    if (e.getMessage().indexOf("java.net.ConnectException: Connection refused") != 1) {
+		waitForAttestationServiceAndRetry();
+	    }
 	    logPollerRunComplete();
 	    return null;
 	}
@@ -143,11 +160,40 @@ public class AttestationServicePollerJob {
 	    hostAttestationsMap = attestationServiceClient.fetchHostAttestations(allHosts);
 	} catch (AttestationHubException e) {
 	    log.error("Poller.execute: Error fetching SAMLS for hosts from MTW", e);
+	    if (e.getMessage().indexOf("java.net.ConnectException: Connection refused") != 1) {
+		waitForAttestationServiceAndRetry();
+	    }
 	    logPollerRunComplete();
 	    return null;
 	}
 
 	return hostAttestationsMap;
+    }
+
+    private void waitForAttestationServiceAndRetry() {
+
+	if (isRetry) {
+	    // MTW has failed again. Mark all the hosts as inactive
+	    log.info("Since exception occurred again, marking all the hosts as deleted");
+	    AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
+	    try {
+		attestationHubService.markAllHostsAsDeleted();
+	    } catch (AttestationHubException e) {
+		log.error("Unable to mark the hosts as deleted", e);
+	    }
+	    isRetry = false;
+	} else {
+	    log.info("Going to wait for 3 mins before retrying");
+	    try {
+		Thread.sleep(3 * 60 * 1000);
+	    } catch (InterruptedException e) {
+		log.error("Error in sleeping for retrying connection to MTW", e);
+	    }
+
+	    isRetry = true;
+	    log.info("Calling the fetch methods again....");
+	    execute();
+	}
     }
 
     private void writeCurrentTimeToLastRunFile(String str) {

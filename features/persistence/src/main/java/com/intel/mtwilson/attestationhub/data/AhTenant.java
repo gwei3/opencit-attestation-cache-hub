@@ -29,23 +29,22 @@ import org.eclipse.persistence.annotations.UuidGenerator;
 
 /**
  *
- * @author gs-0681
+ * @author GS-0681
  */
 @Entity
 @Table(name = "ah_tenant")
-@Cacheable(false)
-
 @XmlRootElement
+@Cacheable(false)
 @NamedQueries({ @NamedQuery(name = "AhTenant.findAll", query = "SELECT a FROM AhTenant a"),
 	@NamedQuery(name = "AhTenant.findById", query = "SELECT a FROM AhTenant a WHERE a.id = :id"),
 	@NamedQuery(name = "AhTenant.findByTenantName", query = "SELECT a FROM AhTenant a WHERE a.tenantName = :tenantName"),
-	@NamedQuery(name = "AhTenant.findByTenantNameSearchCriteria", query = "SELECT a FROM AhTenant a WHERE a.tenantName = :tenantName"),
 	@NamedQuery(name = "AhTenant.findByTenantKey", query = "SELECT a FROM AhTenant a WHERE a.tenantKey = :tenantKey"),
 	@NamedQuery(name = "AhTenant.findByConfig", query = "SELECT a FROM AhTenant a WHERE a.config = :config"),
 	@NamedQuery(name = "AhTenant.findByCreatedDate", query = "SELECT a FROM AhTenant a WHERE a.createdDate = :createdDate"),
 	@NamedQuery(name = "AhTenant.findByCreatedBy", query = "SELECT a FROM AhTenant a WHERE a.createdBy = :createdBy"),
 	@NamedQuery(name = "AhTenant.findByModifiedDate", query = "SELECT a FROM AhTenant a WHERE a.modifiedDate = :modifiedDate"),
 	@NamedQuery(name = "AhTenant.findByModifiedBy", query = "SELECT a FROM AhTenant a WHERE a.modifiedBy = :modifiedBy"),
+	@NamedQuery(name = "AhTenant.findByTenantNameSearchCriteria", query = "SELECT a FROM AhTenant a WHERE upper(a.tenantName) = :tenantName"),
 	@NamedQuery(name = "AhTenant.findByDeleted", query = "SELECT a FROM AhTenant a WHERE a.deleted = :deleted") })
 public class AhTenant implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -78,7 +77,6 @@ public class AhTenant implements Serializable {
 	deleted = false;
 	createdDate = new Date();
 	modifiedDate = new Date();
-
     }
 
     public AhTenant(String id) {

@@ -4,5 +4,5 @@ import java.util.List;
 
 public class Mapping {
     public String tenant_id;
-    public List<String> host_ids;
+    public List<String> hardware_uuids;
 }

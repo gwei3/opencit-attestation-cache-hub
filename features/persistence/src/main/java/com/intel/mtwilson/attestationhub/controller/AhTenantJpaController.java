@@ -5,24 +5,26 @@
  */
 package com.intel.mtwilson.attestationhub.controller;
 
-import com.intel.mtwilson.attestationhub.controller.exceptions.NonexistentEntityException;
-import com.intel.mtwilson.attestationhub.controller.exceptions.PreexistingEntityException;
 import java.io.Serializable;
-import javax.persistence.Query;
-import javax.persistence.EntityNotFoundException;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
-import com.intel.mtwilson.attestationhub.data.AhMapping;
-import com.intel.mtwilson.attestationhub.data.AhTenant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityNotFoundException;
+import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+
+import com.intel.mtwilson.attestationhub.controller.exceptions.NonexistentEntityException;
+import com.intel.mtwilson.attestationhub.controller.exceptions.PreexistingEntityException;
+import com.intel.mtwilson.attestationhub.data.AhMapping;
+import com.intel.mtwilson.attestationhub.data.AhTenant;
 
 /**
  *
- * @author gs-0681
+ * @author GS-0681
  */
 public class AhTenantJpaController implements Serializable {
 
@@ -49,7 +51,24 @@ public class AhTenantJpaController implements Serializable {
 	try {
 	    em = getEntityManager();
 	    em.getTransaction().begin();
+	    Collection<AhMapping> attachedAhMappingCollection = new ArrayList<AhMapping>();
+	    for (AhMapping ahMappingCollectionAhMappingToAttach : ahTenant.getAhMappingCollection()) {
+		ahMappingCollectionAhMappingToAttach = em.getReference(ahMappingCollectionAhMappingToAttach.getClass(),
+			ahMappingCollectionAhMappingToAttach.getId());
+		attachedAhMappingCollection.add(ahMappingCollectionAhMappingToAttach);
+	    }
+	    ahTenant.setAhMappingCollection(attachedAhMappingCollection);
 	    em.persist(ahTenant);
+	    for (AhMapping ahMappingCollectionAhMapping : ahTenant.getAhMappingCollection()) {
+		AhTenant oldTenantUuidOfAhMappingCollectionAhMapping = ahMappingCollectionAhMapping.getTenant();
+		ahMappingCollectionAhMapping.setTenant(ahTenant);
+		ahMappingCollectionAhMapping = em.merge(ahMappingCollectionAhMapping);
+		if (oldTenantUuidOfAhMappingCollectionAhMapping != null) {
+		    oldTenantUuidOfAhMappingCollectionAhMapping.getAhMappingCollection()
+			    .remove(ahMappingCollectionAhMapping);
+		    oldTenantUuidOfAhMappingCollectionAhMapping = em.merge(oldTenantUuidOfAhMappingCollectionAhMapping);
+		}
+	    }
 	    em.getTransaction().commit();
 	} catch (Exception ex) {
 	    if (findAhTenant(ahTenant.getId()) != null) {
@@ -68,8 +87,8 @@ public class AhTenantJpaController implements Serializable {
 	try {
 	    em = getEntityManager();
 	    em.getTransaction().begin();
+	    AhTenant persistentAhTenant = em.find(AhTenant.class, ahTenant.getId());
 	    ahTenant = em.merge(ahTenant);
-	    em.persist(ahTenant);
 	    em.getTransaction().commit();
 	} catch (Exception ex) {
 	    String msg = ex.getLocalizedMessage();

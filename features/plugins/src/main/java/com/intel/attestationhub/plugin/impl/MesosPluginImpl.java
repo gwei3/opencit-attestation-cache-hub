@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intel.attestationhub.api.PublishData;
+import com.intel.attestationhub.api.Tenant.Plugin;
 import com.intel.attestationhub.plugin.EndpointPlugin;
 import com.intel.mtwilson.attestationhub.common.AttestationHubConfigUtil;
 import com.intel.mtwilson.attestationhub.common.Constants;
@@ -14,7 +15,7 @@ public class MesosPluginImpl implements EndpointPlugin {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MesosPluginImpl.class);
 
     @Override
-    public void pushData(PublishData data) throws AttestationHubException {
+    public void pushData(PublishData data, Plugin plugin) throws AttestationHubException {
 	String dir = AttestationHubConfigUtil.get(Constants.ATTESTATION_HUB_TENANT_CONFIGURATIONS_PATH);
 	File file = new File(dir + File.separator + data.tenantId + "_mesos.txt");
 	try {
