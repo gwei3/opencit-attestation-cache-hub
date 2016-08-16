@@ -31,7 +31,7 @@ public class TenantMapper {
 	ahTenant.setModifiedDate(new Date());
 	ObjectMapper mapper = new ObjectMapper();
 	mapper.setSerializationInclusion(Inclusion.NON_NULL);
-
+	
 	try {
 	    String tenantConfig = mapper.writeValueAsString(tenant);
 	    ahTenant.setConfig(tenantConfig);
@@ -58,7 +58,11 @@ public class TenantMapper {
 	    String tenantConfig = ahTenant.getConfig();
 	    tenant = mapper.readValue(tenantConfig, Tenant.class);
 	    tenant.setId(ahTenant.getId());
-	    tenant.setDeleted(ahTenant.getDeleted());
+	    if(ahTenant.getDeleted() == null){
+		tenant.setDeleted(false);
+	    }else{
+		tenant.setDeleted(ahTenant.getDeleted());
+	    }
 	} catch (JsonGenerationException e) {
 	    log.error("Error generating tenant json", e);
 	    throw new AttestationHubException(e);

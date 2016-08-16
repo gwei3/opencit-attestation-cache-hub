@@ -40,7 +40,7 @@ public class HostMapper {
 	ahHost.setHardwareUuid(citHost.getHardwareUuid().toString());
 	ahHost.setHostName(citHost.getName());
 	ahHost.setValidTo(host.getSamlValidTo());
-	ahHost.setTrusted(host.getTrusted());
+	ahHost.setTrusted(host.getTrusted() == null ? false : host.getTrusted());
 	if (citHostAttestation != null) {
 	    ahHost.setSamlReport(citHostAttestation.getSaml());
 	    HostTrustResponse hostTrustResponse = citHostAttestation.getHostTrustResponse();

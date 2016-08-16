@@ -29,6 +29,16 @@
 			<groupId>com.intel.mtwilson.services</groupId>
 			<artifactId>mtwilson-setup</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.intel.mtwilson.util</groupId>
+			<artifactId>mtwilson-util-exec</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.intel.mtwilson.integration</groupId>
+			<artifactId>mtwilson-password-vault</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 
 		<!-- attestation-hub -->
 		<dependency>
@@ -52,6 +62,12 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.bitbucket.b_c</groupId>
+			<artifactId>jose4j</artifactId>
+			<version>0.5.1</version>
+		</dependency>
+
 	</dependencies>
 
 </project>

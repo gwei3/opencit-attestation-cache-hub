@@ -17,4 +17,7 @@ public class Constants {
     public static final String ATTESTATION_HUB_SAML_TIMEOUT = "attestation-hub.saml.timeout";
     public static final String CREATE = "create";
     public static final String UPDATE = "update";
+    public static final String PUBLIC_KEY_FILE = "hub_public_key.pem";
+    public static final String PRIVATE_KEY_FILE = "hub_private_key.pem";
+
 }
