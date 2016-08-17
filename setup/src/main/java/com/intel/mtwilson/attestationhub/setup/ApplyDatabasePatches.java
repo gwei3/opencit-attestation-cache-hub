@@ -101,16 +101,25 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
     private boolean testConnection() {
 	boolean status = false;
 	Statement s1 = null;
+	ResultSet rs = null;
 	try {
 	    log.debug("Inside  testConnection ");
 	    getConnection();
 	    s1 = connection.createStatement();
-	    s1.executeQuery("SELECT 1");
+	    rs = s1.executeQuery("SELECT 1");
 	    status = true;
 	} catch (Exception e) {
 	    log.error("AttestationHub DB Patches : cannot connect to database", e);
 	    validation("AttestationHub DB Patches : Cannot connect to database");
 	} finally {
+	    if (rs != null) {
+		try {
+		    rs.close();
+		} catch (SQLException e) {
+		    log.error("ApplyDatabasePatches , testConnection : cannot close result set", e);
+		}
+	    }
+
 	    if (s1 != null) {
 		try {
 		    s1.close();
@@ -192,10 +201,10 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
     }
 
     private void checkAvailableUpdates() throws SetupException, IOException, SQLException {
-	HashSet<Long> changesToApply = null;
-	changesToApply = fetchChangesToApply();
+	HashSet<Long> changesToApply = fetchChangesToApply();
 	if (changesToApply == null) {
 	    log.info("No database updates available");
+	    return;
 	}
 
 	if (changesToApply.isEmpty()) {

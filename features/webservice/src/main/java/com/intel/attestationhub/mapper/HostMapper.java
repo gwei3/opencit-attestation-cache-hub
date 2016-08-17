@@ -74,6 +74,9 @@ public class HostMapper {
 			} else {
 			    continue;
 			}
+			if(StringUtils.isBlank(tag)){
+			    continue;
+			}
 			List<XMLObject> attributeValues = attribute.getAttributeValues();
 			for (XMLObject xmlObject : attributeValues) {
 			    Element dom = xmlObject.getDOM();
@@ -82,8 +85,7 @@ public class HostMapper {
 			if(StringUtils.isBlank(tagValue)){
 			    continue;
 			}
-			tag += "=";
-			tag += tagValue;
+			tag = tag + "=" + tagValue;			
 			assetTagList.add(tag);
 		    }
 		}

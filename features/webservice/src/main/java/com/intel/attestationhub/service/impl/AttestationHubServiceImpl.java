@@ -76,7 +76,7 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	// Add the plugins
 	for (Plugin plugin : tenant.getPlugins()) {
 	    String pluginName = plugin.getName().toLowerCase();
-	    log.info("Creating {} plugin ", pluginName);
+	    log.debug("Creating {} plugin ", pluginName);
 	    List<Property> properties = plugin.getProperties();
 	    for (Property property : properties) {
 		wini.put(pluginName, property.getKey(), property.getValue());

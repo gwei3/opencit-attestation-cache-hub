@@ -125,13 +125,12 @@ public class PluginManager {
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
 	List<AhTenant> ahTenantList = tenantController.findAhTenantEntities();
+	List<AhTenant> activeTenants = new ArrayList<AhTenant>();
 
 	if (ahTenantList == null) {
 	    log.info("No tenants configured");
+	    return activeTenants;
 	}
-	List<AhTenant> activeTenants = null;
-
-	activeTenants = new ArrayList<AhTenant>();
 	for (AhTenant ahTenant : ahTenantList) {
 	    if (ahTenant.getDeleted() != null && ahTenant.getDeleted()) {
 		log.info("Tenant {} is not active. Skipping. ", ahTenant.getId());
@@ -199,6 +198,10 @@ public class PluginManager {
 		data.tenantId = ahTenant.getId();
 		data.hostDetailsList = hostsData;
 		EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin.getName());
+		if(endpointPlugin == null){
+		    log.info("No plugin available for : {}", plugin.getName());
+		    continue;
+		}
 		log.info("Before pushing data to plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
 		endpointPlugin.pushData(data, plugin);
 		log.info("After pushing data for plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
@@ -250,13 +253,6 @@ public class PluginManager {
 	    fis = new FileInputStream(prikeyFile);
 	} catch (FileNotFoundException e) {
 	    log.error("Unable to locate private key file at {}", prikeyFile.getAbsolutePath(), e);
-	    if (fis != null) {
-		try {
-		    fis.close();
-		} catch (IOException e1) {
-		    log.error("Error while closing stream to the private key file", e1);
-		}
-	    }
 	    throw new AttestationHubException("Unable to locate private key file at " + PRIVATE_KEY_PATH, e);
 	}
 	DataInputStream dis = new DataInputStream(fis);
