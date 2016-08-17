@@ -446,7 +446,6 @@ public class HostAssignments {
     public Response searchMappingsBySearchCriteria(@BeanParam SearchCriteriaForMapping criteriaForMapping,
 	    @Context HttpServletRequest httpServletRequest) {
 	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
-	List<AhMapping> ahMappings = new ArrayList<>();
 	if (StringUtils.isBlank(httpServletRequest.getQueryString())) {
 	    return retrieveAllMappings();
 	}
@@ -458,6 +457,7 @@ public class HostAssignments {
 	    Status status = Response.Status.BAD_REQUEST;
 	    return Response.status(status).entity(errorResponse).build();
 	}
+	List<AhMapping> ahMappings = new ArrayList<>();
 
 	try {
 	    ahMappings = attestationHubService.searchMappingsBySearchCriteria(criteriaForMapping);

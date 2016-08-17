@@ -17,6 +17,7 @@ import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -103,7 +104,8 @@ public class PluginManager {
 		}
 		HostDetails details = populateHostDetails(host);
 		if (details != null) {
-		    log.debug("Adding host details of host uuid: {} to the data published to the controller", host.getId());
+		    log.debug("Adding host details of host uuid: {} to the data published to the controller",
+			    host.getId());
 		    hostsData.add(details);
 		} else {
 		    log.error("Populate host details for host uuid: {} returned NULL", host.getId());
@@ -123,11 +125,11 @@ public class PluginManager {
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
 	List<AhTenant> ahTenantList = tenantController.findAhTenantEntities();
-	List<AhTenant> activeTenants = null;
 
 	if (ahTenantList == null) {
 	    log.info("No tenants configured");
 	}
+	List<AhTenant> activeTenants = null;
 
 	activeTenants = new ArrayList<AhTenant>();
 	for (AhTenant ahTenant : ahTenantList) {
@@ -152,17 +154,23 @@ public class PluginManager {
 	details.hardwareUuid = host.getHardwareUuid();
 	details.trust_report = trustTagsJson;
 	details.host_name = host.getHostName();
+	List<String> assetTags = new ArrayList<>();
+	if (StringUtils.isNotBlank(host.getAssetTags())) {
+	    String[] split = host.getAssetTags().split(",");
+	    assetTags.addAll(Arrays.asList(split));
+	}
 	if (StringUtils.isBlank(trustTagsJson)) {
 	    log.error("** No trust tags json available for host uuid: {} for generating a JWS", host.getId());
 	    return details;
 	}
+
 	ObjectMapper objectMapper = new ObjectMapper();
-	HostTrustResponse hostTrustResponse = null;
 	String errorMsg = "Error parsing trust response";
 	try {
-	    hostTrustResponse = objectMapper.readValue(trustTagsJson, HostTrustResponse.class);
+	    HostTrustResponse hostTrustResponse = objectMapper.readValue(trustTagsJson, HostTrustResponse.class);
 	    hostTrustResponse.setValidTo(host.getValidTo());
 	    hostTrustResponse.setTrusted(host.getTrusted() == null ? false : host.getTrusted());
+	    hostTrustResponse.setAssetTags(assetTags);
 	    String trustReportWithAdditions = objectMapper.writeValueAsString(hostTrustResponse);
 	    details.trust_report = trustReportWithAdditions;
 	    String signedTrustReport = createSignedTrustReport(trustReportWithAdditions);
@@ -242,6 +250,13 @@ public class PluginManager {
 	    fis = new FileInputStream(prikeyFile);
 	} catch (FileNotFoundException e) {
 	    log.error("Unable to locate private key file at {}", prikeyFile.getAbsolutePath(), e);
+	    if (fis != null) {
+		try {
+		    fis.close();
+		} catch (IOException e1) {
+		    log.error("Error while closing stream to the private key file", e1);
+		}
+	    }
 	    throw new AttestationHubException("Unable to locate private key file at " + PRIVATE_KEY_PATH, e);
 	}
 	DataInputStream dis = new DataInputStream(fis);
@@ -252,10 +267,14 @@ public class PluginManager {
 	    log.error("Unable to read private key file at {}", prikeyFile.getAbsolutePath(), e);
 	}
 	try {
-	    dis.close();
+	    if (fis != null) {
+		fis.close();
+	    }
+	    if (dis != null) {
+		dis.close();
+	    }
 	} catch (IOException e) {
 	    log.error("Unable to close stream to private key file at {}", prikeyFile.getAbsolutePath(), e);
-
 	}
 
 	PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);

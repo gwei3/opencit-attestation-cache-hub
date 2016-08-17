@@ -7,6 +7,10 @@ import java.util.Properties;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.intel.dcsg.cpg.configuration.Configuration;
 import com.intel.mtwilson.Folders;
 import com.intel.mtwilson.attestationhub.common.Constants;
 import com.intel.mtwilson.attestationhub.controller.AhHostJpaController;
@@ -16,7 +20,7 @@ import com.intel.mtwilson.configuration.ConfigurationFactory;
 import com.intel.mtwilson.configuration.ConfigurationProvider;
 
 public class PersistenceServiceFactory {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PersistenceServiceFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(PersistenceServiceFactory.class);
 
     private EntityManagerFactory entityManagerFactory;
     private static Properties jpaProperties;
@@ -28,7 +32,7 @@ public class PersistenceServiceFactory {
 	jpaProperties = new Properties();
 	try {
 	    provider = ConfigurationFactory.createConfigurationProvider(hubPropertiesFile);
-	    com.intel.dcsg.cpg.configuration.Configuration loadedConfiguration = provider.load();
+	    Configuration loadedConfiguration = provider.load();
 	    jpaProperties.put("javax.persistence.jdbc.driver",
 		    loadedConfiguration.get(Constants.ATTESTATION_HUB_DB_DRIVER));
 	    jpaProperties.put("javax.persistence.jdbc.url", loadedConfiguration.get(Constants.ATTESTATION_HUB_DB_URL));
@@ -49,21 +53,21 @@ public class PersistenceServiceFactory {
     }
 
     public AhTenantJpaController getTenantController() {
-	log.info("initializing the tenant controller");
+	log.debug("initializing the tenant controller");
 	entityManagerFactory = Persistence.createEntityManagerFactory(Constants.ATTESTATION_HUB_DATABASE_NAME,
 		jpaProperties);
 	return new AhTenantJpaController(entityManagerFactory);
     }
 
     public AhHostJpaController getHostController() {
-	log.info("initializing the host controller");
+	log.debug("initializing the host controller");
 	entityManagerFactory = Persistence.createEntityManagerFactory(Constants.ATTESTATION_HUB_DATABASE_NAME,
 		jpaProperties);
 	return new AhHostJpaController(entityManagerFactory);
     }
 
     public AhMappingJpaController getTenantToHostMappingController() {
-	log.info("initializing the mapping controller");
+	log.debug("initializing the mapping controller");
 	entityManagerFactory = Persistence.createEntityManagerFactory(Constants.ATTESTATION_HUB_DATABASE_NAME,
 		jpaProperties);
 	return new AhMappingJpaController(entityManagerFactory);

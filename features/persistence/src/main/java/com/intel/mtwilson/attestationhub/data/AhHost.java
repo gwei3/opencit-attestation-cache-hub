@@ -79,10 +79,12 @@ public class AhHost implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date modifiedDate;
     @Column(name = "modified_by")
-    private String modifiedBy;    
+    private String modifiedBy;
     private Boolean deleted;
     @Column(name = "trusted")
     private Boolean trusted;
+    @Column(name = "asset_tags")
+    private String assetTags;
 
     public AhHost() {
 	deleted = false;
@@ -167,11 +169,11 @@ public class AhHost implements Serializable {
     }
 
     public String getValidTo() {
-        return validTo;
+	return validTo;
     }
 
     public void setValidTo(String validTo) {
-        this.validTo = validTo;
+	this.validTo = validTo;
     }
 
     public String getSamlReport() {
@@ -221,14 +223,21 @@ public class AhHost implements Serializable {
     public void setDeleted(Boolean deleted) {
 	this.deleted = deleted;
     }
-    
-    
+
     public Boolean getTrusted() {
-        return trusted;
+	return trusted;
     }
 
     public void setTrusted(Boolean trusted) {
-        this.trusted = trusted;
+	this.trusted = trusted;
+    }
+
+    public String getAssetTags() {
+	return assetTags;
+    }
+
+    public void setAssetTags(String assetTags) {
+	this.assetTags = assetTags;
     }
 
     @Override

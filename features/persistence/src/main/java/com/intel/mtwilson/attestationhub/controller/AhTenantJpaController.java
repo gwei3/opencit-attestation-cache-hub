@@ -66,7 +66,7 @@ public class AhTenantJpaController implements Serializable {
 		if (oldTenantUuidOfAhMappingCollectionAhMapping != null) {
 		    oldTenantUuidOfAhMappingCollectionAhMapping.getAhMappingCollection()
 			    .remove(ahMappingCollectionAhMapping);
-		    oldTenantUuidOfAhMappingCollectionAhMapping = em.merge(oldTenantUuidOfAhMappingCollectionAhMapping);
+		    em.merge(oldTenantUuidOfAhMappingCollectionAhMapping);
 		}
 	    }
 	    em.getTransaction().commit();
@@ -87,8 +87,7 @@ public class AhTenantJpaController implements Serializable {
 	try {
 	    em = getEntityManager();
 	    em.getTransaction().begin();
-	    AhTenant persistentAhTenant = em.find(AhTenant.class, ahTenant.getId());
-	    ahTenant = em.merge(ahTenant);
+	    em.merge(ahTenant);
 	    em.getTransaction().commit();
 	} catch (Exception ex) {
 	    String msg = ex.getLocalizedMessage();

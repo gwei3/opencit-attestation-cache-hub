@@ -99,18 +99,17 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
     }
 
     private boolean testConnection() {
+	boolean status = false;
 	Statement s1 = null;
-	Connection c1 = null;
 	try {
 	    log.debug("Inside  testConnection ");
-	    c1 = getConnection();
-	    s1 = c1.createStatement();
+	    getConnection();
+	    s1 = connection.createStatement();
 	    s1.executeQuery("SELECT 1");
-	    return true;
+	    status = true;
 	} catch (Exception e) {
 	    log.error("AttestationHub DB Patches : cannot connect to database", e);
 	    validation("AttestationHub DB Patches : Cannot connect to database");
-	    return false;
 	} finally {
 	    if (s1 != null) {
 		try {
@@ -119,16 +118,9 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
 		    log.error("ApplyDatabasePatches , testConnection : cannot close create statement", e);
 		}
 	    }
-	    try {
-		if (c1 != null && !c1.isClosed()) {
-
-		    c1.close();
-
-		}
-	    } catch (SQLException e) {
-		log.error("ApplyDatabasePatches , testConnection  : cannot close connection", e);
-	    }
+	    closeConnection();
 	}
+	return status;
 
     }
 
@@ -155,13 +147,12 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
     private Map<Long, Resource> sql;
 
     private HashSet<Long> fetchChangesToApply() throws SetupException, IOException, SQLException {
-	System.out.println("Inside fetchChangesToApply() : "+databaseVendor);
+	System.out.println("Inside fetchChangesToApply() : " + databaseVendor);
 	sql = getSql(databaseVendor);
 
 	log.debug("Connecting to {}", databaseVendor);
-	Connection c;
 	try {
-	    c = getConnection();
+	    getConnection();
 	} catch (SQLException e) {
 	    log.error("Failed to connect to {} with schema: error = {}", databaseVendor, e.getMessage());
 	    return null;
@@ -171,8 +162,8 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
 	}
 	List<ChangelogEntry> changelog;
 
-	changelog = getChangelog(c);
-
+	changelog = getChangelog(connection);
+	closeConnection();
 	HashMap<Long, ChangelogEntry> presentChanges = new HashMap<>();
 	verbose("Existing database changelog has %d entries", changelog.size());
 	for (ChangelogEntry entry : changelog) {
@@ -201,15 +192,17 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
     }
 
     private void checkAvailableUpdates() throws SetupException, IOException, SQLException {
+	HashSet<Long> changesToApply = null;
+	changesToApply = fetchChangesToApply();
+	if (changesToApply == null) {
+	    log.info("No database updates available");
+	}
 
-	HashSet<Long> changesToApply = fetchChangesToApply();
-
-	if (changesToApply != null && changesToApply.isEmpty()) {
+	if (changesToApply.isEmpty()) {
 	    log.info("No database updates available");
 	} else {
 	    validation("There are %s database updates to apply", changesToApply.size());
 	}
-
     }
 
     /**
@@ -225,54 +218,48 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
 
 	HashSet<Long> changesToApply = fetchChangesToApply();
 	log.info(" initDatabase  Connecting to {}", databaseVendor);
-	try (Connection c = getConnection()) {
-	    ArrayList<Long> changesToApplyInOrder = new ArrayList<>(changesToApply);
-	    Collections.sort(changesToApplyInOrder);
+	ArrayList<Long> changesToApplyInOrder = new ArrayList<>(changesToApply);
+	Collections.sort(changesToApplyInOrder);
 
-	    ResourceDatabasePopulator rdp = new ResourceDatabasePopulator();
+	ResourceDatabasePopulator rdp = new ResourceDatabasePopulator();
 
-	    boolean changeLogTableExist = checkIfTableExist("changelog");
-	    boolean ahHostTableExist = checkIfTableExist("ah_host");
-	    log.info("changeLogTableExist::" + changeLogTableExist + " ahHostTableExist::" + ahHostTableExist);
-	    if (!changeLogTableExist) {
+	boolean changeLogTableExist = checkIfTableExist("changelog");
+	boolean ahHostTableExist = checkIfTableExist("ah_host");
+	log.info("changeLogTableExist::" + changeLogTableExist + " ahHostTableExist::" + ahHostTableExist);
+	if (!changeLogTableExist) {
 
-		rdp.addScript(getSqlResource(CHANGELOG_FILE));
-		log.info("changelog table do not exist");
-		log.info("Adding sql script for execution :changelog.sql");
+	    rdp.addScript(getSqlResource(CHANGELOG_FILE));
+	    log.info("changelog table do not exist");
+	    log.info("Adding sql script for execution :changelog.sql");
 
-	    }
-
-	    int startIndex = 0;
-	    if (ahHostTableExist && !changeLogTableExist) { /// It has GA
-							     /// database
-		log.info("Skipping execution of first sql file i.e bootstrap sql file");
-		startIndex = 1;/// Skipping the execution first sql file i.e GA
-			       /// build file as this condition is only true
-			       /// when existing database schema is of GA
-	    }
-	    for (int i = startIndex; i < changesToApplyInOrder.size(); i++) {
-
-		Long id = changesToApplyInOrder.get(i);
-		log.info("Adding sql script for execution id:" + id);
-		rdp.addScript(sql.get(id));
-	    }
-
-	    rdp.setContinueOnError(true);
-	    rdp.setIgnoreFailedDrops(true);
-	    rdp.setSeparator(";");
-	    rdp.populate(c);
-	} catch (SQLException e) {
-	    log.error("Failed to connect to {} with schema: error = {}", databaseVendor, e.getMessage());
-	    validation("Cannot connect to database");
 	}
 
+	int startIndex = 0;
+	if (ahHostTableExist && !changeLogTableExist) { /// It has GA
+							/// database
+	    log.info("Skipping execution of first sql file i.e bootstrap sql file");
+	    startIndex = 1;/// Skipping the execution first sql file i.e GA
+			   /// build file as this condition is only true
+			   /// when existing database schema is of GA
+	}
+	for (int i = startIndex; i < changesToApplyInOrder.size(); i++) {
+	    Long id = changesToApplyInOrder.get(i);
+	    log.info("Adding sql script for execution id:" + id);
+	    rdp.addScript(sql.get(id));
+	}
+
+	rdp.setContinueOnError(true);
+	rdp.setIgnoreFailedDrops(true);
+	rdp.setSeparator(";");
+	rdp.populate(getConnection());
+	closeConnection();
     }
 
     private Resource getSqlResource(String sqlFileName) {
 	PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(
 		getClass().getClassLoader());
-	Resource resource = resolver
-		.getResource("classpath:com/intel/mtwilson/attestation-hub/database/" + databaseVendor + "/" + sqlFileName);
+	Resource resource = resolver.getResource(
+		"classpath:com/intel/mtwilson/attestation-hub/database/" + databaseVendor + "/" + sqlFileName);
 
 	return resource;
     }
@@ -353,11 +340,12 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
     public boolean checkIfTableExist(String tableName) throws SQLException, ClassNotFoundException {
 	log.debug("ckeckIfTableExist for tableName::" + tableName);
 	List<String> tableNamesList = getTableNames(getConnection());
-
+	boolean status = false;
 	if (tableNamesList.contains(tableName)) {
-	    return true;
+	    status = true;
 	}
-	return false;
+	closeConnection();
+	return status;
     }
 
     private List<String> getTableNames(Connection c) throws SQLException {
@@ -466,8 +454,19 @@ public class ApplyDatabasePatches extends AbstractSetupTask {
 	}
 	Class.forName(databaseDriver);
 	connection = DriverManager.getConnection(databaseUrl, info);
-	System.out.println("Created DB connection "+connection);
+	log.info("Created DB connection " + connection);
 	return connection;
+    }
+
+    private static void closeConnection() {
+	if (connection != null) {
+	    try {
+		connection.close();
+	    } catch (SQLException e) {
+		log.error("Errow while closing connection in DB patches", e);
+	    }
+	}
+
     }
 
 }

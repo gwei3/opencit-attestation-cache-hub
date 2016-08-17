@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -202,8 +201,9 @@ public class AttestationServicePollerJob {
 	if (!lastRunDateTimeFile.exists()) {
 	    return;
 	}
+	FileOutputStream fileOutputStream = null;
 	try {
-	    FileOutputStream fileOutputStream = new FileOutputStream(lastRunDateTimeFile);
+	    fileOutputStream= new FileOutputStream(lastRunDateTimeFile);
 	    byte[] contentInBytes = str.getBytes();
 	    fileOutputStream.write(contentInBytes);
 	    fileOutputStream.flush();
@@ -212,15 +212,25 @@ public class AttestationServicePollerJob {
 	    log.error("Unable to locate last run file", e);
 	} catch (IOException e) {
 	    log.error("Unable to write to last run file", e);
+	}finally{
+	    if(fileOutputStream != null){
+		try {
+		    fileOutputStream.close();
+		} catch (IOException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+		}
+	    }
 	}
     }
 
     private String readDateTimeFromLastRunFile() {
 	// 2016-02-27T00:00:00Z
-	String lastDateTime = null;
 	if (!lastRunDateTimeFile.exists()) {
-	    return lastDateTime;
+	    return null;
 	}
+	String lastDateTime = null;
+
 	BufferedReader br = null;
 	try {
 	    String sCurrentLine;

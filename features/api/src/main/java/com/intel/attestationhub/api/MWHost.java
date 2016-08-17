@@ -2,12 +2,22 @@ package com.intel.attestationhub.api;
 
 import com.intel.mtwilson.as.rest.v2.model.Host;
 import com.intel.mtwilson.as.rest.v2.model.HostAttestation;
+import com.intel.mtwilson.saml.TrustAssertion;
 
 public class MWHost {
     private Host host;
     private HostAttestation mwHostAttestation;
     private String samlValidTo;
     private Boolean trusted;
+    private TrustAssertion trustAssertion;
+
+    public TrustAssertion getTrustAssertion() {
+        return trustAssertion;
+    }
+
+    public void setTrustAssertion(TrustAssertion trustAssertion) {
+        this.trustAssertion = trustAssertion;
+    }
 
     public Host getHost() {
 	return host;

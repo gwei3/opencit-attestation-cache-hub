@@ -1,19 +1,11 @@
 package com.intel.mtwilson.attestationhub.setup;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.Key;
-import java.security.KeyPair;
 
-import org.apache.commons.lang.StringUtils;
-import org.jose4j.keys.RsaKeyUtil;
-import com.intel.mtwilson.util.exec.ExecUtil;
-import com.intel.mtwilson.util.exec.Result;
 import com.intel.mtwilson.Folders;
 import com.intel.mtwilson.attestationhub.common.Constants;
 import com.intel.mtwilson.setup.AbstractSetupTask;
+import com.intel.mtwilson.util.exec.ExecUtil;
 
 public class TrustReportEncryptionKey extends AbstractSetupTask {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TrustReportEncryptionKey.class);
@@ -49,12 +41,12 @@ public class TrustReportEncryptionKey extends AbstractSetupTask {
 	 */
 	String command = "openssl genrsa 2048 > " + Folders.configuration() + File.separator + "TEMP"
 		+ Constants.PRIVATE_KEY_FILE;
-	Result result = ExecUtil.executeQuoted("/bin/bash", "-c", command);
+	ExecUtil.executeQuoted("/bin/bash", "-c", command);
 	command = "openssl rsa -in "
 		+ (Folders.configuration() + File.separator + "TEMP" + Constants.PRIVATE_KEY_FILE)
 		+ " -outform PEM -pubout -out "
 		+ (Folders.configuration() + File.separator + Constants.PUBLIC_KEY_FILE);
-	result = ExecUtil.executeQuoted("/bin/bash", "-c", command);
+	ExecUtil.executeQuoted("/bin/bash", "-c", command);
 	//Convert private key to PKCS8
 	String tempFile = Folders.configuration() + File.separator + "TEMP"
 		+ Constants.PRIVATE_KEY_FILE;
@@ -62,33 +54,9 @@ public class TrustReportEncryptionKey extends AbstractSetupTask {
 		+ Constants.PRIVATE_KEY_FILE;
 	
 	command = "openssl pkcs8 -topk8 -inform PEM -outform DER -in "+ tempFile +" -out "+ priKeyFile +"  -nocrypt > pkcs8_key";
-	result = ExecUtil.executeQuoted("/bin/bash", "-c", command);
+	ExecUtil.executeQuoted("/bin/bash", "-c", command);
 
     }
 
-    private void writeKeyToFile(Key key, File file) {
-	byte[] keyBytes = key.getEncoded();
-	FileOutputStream keyfos = null;
-	try {
-	    keyfos = new FileOutputStream(file);
-	} catch (FileNotFoundException e) {
-	    log.error("Unable to write key to disk", e);
-	    return;
-	}
-	try {
-	    keyfos.write(keyBytes);
-	} catch (IOException e) {
-	    log.error("Unable to write key to disk", e);
-	}
-	try {
-	    if (keyfos != null) {
-		keyfos.close();
-	    }
-	} catch (IOException e) {
-	    log.error("Unable to write key to disk", e);
-	    return;
-	}
-
-    }
 
 }

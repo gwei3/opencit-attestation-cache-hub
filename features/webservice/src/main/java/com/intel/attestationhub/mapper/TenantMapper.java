@@ -50,7 +50,7 @@ public class TenantMapper {
     }
 
     public static Tenant mapJpatoApi(AhTenant ahTenant) throws AttestationHubException {
-	Tenant tenant = new Tenant();
+	Tenant tenant = null;
 	ObjectMapper mapper = new ObjectMapper();
 	mapper.setSerializationInclusion(Inclusion.NON_NULL);
 

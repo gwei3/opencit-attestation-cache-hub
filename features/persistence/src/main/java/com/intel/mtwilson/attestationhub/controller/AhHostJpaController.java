@@ -64,7 +64,7 @@ public class AhHostJpaController implements Serializable {
 	try {
 	    em = getEntityManager();
 	    em.getTransaction().begin();
-	    ahHost = em.merge(ahHost);
+	    em.merge(ahHost);
 	    em.getTransaction().commit();
 	} catch (Exception ex) {
 	    String msg = ex.getLocalizedMessage();

@@ -192,7 +192,8 @@ public class AttestationServiceClient {
 		    continue;
 		}
 		String str = convertDateToUTCString(assertion.getNotAfter());
-		mwHost.setSamlValidTo(str);		
+		mwHost.setSamlValidTo(str);
+		mwHost.setTrustAssertion(assertion);
 		TrustReport trustReport = hostAttestation.getTrustReport();
 		mwHost.setTrusted(trustReport.isTrusted());
 		hostIdToMwHostMap.put(hostId, mwHost);

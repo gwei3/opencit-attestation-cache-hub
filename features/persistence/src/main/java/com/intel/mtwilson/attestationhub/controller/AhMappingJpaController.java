@@ -49,7 +49,7 @@ public class AhMappingJpaController implements Serializable {
 	    em.persist(ahMapping);
 	    if (tenantUuid != null) {
 		tenantUuid.getAhMappingCollection().add(ahMapping);
-		tenantUuid = em.merge(tenantUuid);
+		em.merge(tenantUuid);
 	    }
 	    em.getTransaction().commit();
 	} catch (Exception ex) {
