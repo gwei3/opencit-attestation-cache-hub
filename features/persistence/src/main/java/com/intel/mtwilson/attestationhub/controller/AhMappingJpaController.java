@@ -83,7 +83,7 @@ public class AhMappingJpaController implements Serializable {
 	    }
 	    if (tenantUuidNew != null && !tenantUuidNew.equals(tenantUuidOld)) {
 		tenantUuidNew.getAhMappingCollection().add(ahMapping);
-		tenantUuidNew = em.merge(tenantUuidNew);
+		em.merge(tenantUuidNew);
 	    }
 	    em.getTransaction().commit();
 	} catch (Exception ex) {
@@ -117,7 +117,7 @@ public class AhMappingJpaController implements Serializable {
 	    AhTenant tenantUuid = ahMapping.getTenant();
 	    if (tenantUuid != null) {
 		tenantUuid.getAhMappingCollection().remove(ahMapping);
-		tenantUuid = em.merge(tenantUuid);
+		em.merge(tenantUuid);
 	    }
 	    em.remove(ahMapping);
 	    em.getTransaction().commit();

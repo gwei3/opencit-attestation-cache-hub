@@ -441,7 +441,7 @@ public class Tenants {
 		tenantFilterCriteria.nameEqualTo);
 	AttestationHubService attestationHubService = AttestationHubServiceImpl
 		.getInstance();
-	List<Tenant> tenantsList = new ArrayList<>();
+	
 	if (StringUtils.isBlank(httpServletRequest.getQueryString())) {
 	    return retrieveAllTenants();
 	}
@@ -455,7 +455,7 @@ public class Tenants {
 	    return Response.status(status).entity(errorResponse).build();
 
 	}
-
+	List<Tenant> tenantsList = null;
 	try {
 	    tenantsList = attestationHubService
 		    .searchTenantsBySearchCriteria(tenantFilterCriteria);

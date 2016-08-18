@@ -156,7 +156,6 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 
     @Override
     public Tenant retrieveTenant(String tenantId) throws AttestationHubException {
-	Tenant newTenant = new Tenant();
 	PersistenceServiceFactory persistenceServiceFactory = PersistenceServiceFactory.getInstance();
 	AhTenantJpaController tenantController = persistenceServiceFactory.getTenantController();
 	AhTenant ahTenant = tenantController.findAhTenant(tenantId);
@@ -170,7 +169,7 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		    "Tenant with id: " + tenantId + " was deleted.");
 	    throw new AttestationHubException(nonexistentEntityException);
 	}
-	newTenant = TenantMapper.mapJpatoApi(ahTenant);
+	Tenant newTenant = TenantMapper.mapJpatoApi(ahTenant);
 	return newTenant;
     }
 

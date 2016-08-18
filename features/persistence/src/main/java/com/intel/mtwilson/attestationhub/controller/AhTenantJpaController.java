@@ -120,7 +120,7 @@ public class AhTenantJpaController implements Serializable {
 	    Collection<AhMapping> ahMappingCollection = ahTenant.getAhMappingCollection();
 	    for (AhMapping ahMappingCollectionAhMapping : ahMappingCollection) {
 		ahMappingCollectionAhMapping.setTenant(null);
-		ahMappingCollectionAhMapping = em.merge(ahMappingCollectionAhMapping);
+		em.merge(ahMappingCollectionAhMapping);
 	    }
 	    em.remove(ahTenant);
 	    em.getTransaction().commit();
