@@ -1,6 +1,5 @@
 package com.intel.attestationhub.endpoint;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -39,8 +38,7 @@ import com.intel.mtwilson.launcher.ws.ext.V2;
 @V2
 @Path("/tenants")
 public class Tenants {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory
-	    .getLogger(Tenants.class);
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Tenants.class);
 
     /**
      * Create the tenant by passing the JSON that configures the tenant and its
@@ -54,11 +52,37 @@ public class Tenants {
      *                    https://{IP/HOST_NAME}/v1/tenants
      *                    
      *                    Input:
-     *                    {"name":"Pepsi", "plugins":[{"name":"Nova",
-     *                    "properties":[{"key":"endpoint",
-     *                    "value":"http://www.google.com"}]}, {"name":"mesos",
-     *                    "properties":[{"key":"endpoint",
-     *                    "value":"http://www.yahoo.com"}]}]}
+     *                    For Tenant configuration using Nova plugin:
+     *                    {
+                                "name": "COKE",
+                                "plugins": [{
+                                	"name": "nova",
+                                	"properties": [{
+                                		"key": "api.endpoint",
+                                		"value": "http://10.35.35.138:8774"
+                                	},
+                                	{
+                                		"key": "auth.endpoint",
+                                		"value": "http://10.35.35.138:5000"
+                                	},
+                                	{
+                                		"key": "auth.version",
+                                		"value": "v2"
+                                	},
+                                	{
+                                		"key": "user.name",
+                                		"value": "admin"
+                                	},
+                                	{
+                                		"key": "user.password",
+                                		"value": "password"
+                                	},
+                                	{
+                                		"key": "tenant.name",
+                                		"value": "default"
+                                	}]
+                                }]
+                        } 
      * 
      *                    Output: { "id":
      *                    "BA49C7C8-B092-4841-A747-D4F4084AE5B8","name":
@@ -94,7 +118,7 @@ public class Tenants {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param tenant
      *            The pojo representation of the tenant configuration
@@ -106,23 +130,18 @@ public class Tenants {
     public Response createTenant(Tenant tenant) {
 	String validateResult = tenant.validate();
 	if (StringUtils.isNotBlank(validateResult)) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.VALIDATION_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.VALIDATION_FAILED);
 	    errorResponse.detailErrors = validateResult;
-	    return Response.status(Response.Status.BAD_REQUEST)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	try {
 	    String newTenantId = attestationHubService.createTenant(tenant);
 	    tenant.setId(newTenantId);
 	} catch (AttestationHubException e) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
-	    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errorResponse).build();
 	}
 	return Response.ok(tenant).build();
     }
@@ -158,7 +177,7 @@ public class Tenants {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param id
      *            ID of the tenant
@@ -169,21 +188,17 @@ public class Tenants {
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveTenant(@PathParam("id") String id) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
-	    return Response.status(Response.Status.BAD_REQUEST)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
 
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	Tenant tenant;
 	try {
 	    tenant = attestationHubService.retrieveTenant(id);
 	} catch (AttestationHubException e) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
 	    if (e.getCause() instanceof NonexistentEntityException) {
@@ -195,15 +210,13 @@ public class Tenants {
     }
 
     private Response retrieveAllTenants() {
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	List<Tenant> tenants;
 	try {
 	    tenants = attestationHubService.retrieveAllTenants();
 	} catch (AttestationHubException e) {
 	    log.error("Error searching for all atenants", e);
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
 	    if (e.getCause() instanceof NonexistentEntityException) {
@@ -272,7 +285,7 @@ public class Tenants {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param id
      *            ID of the tenant
@@ -286,31 +299,25 @@ public class Tenants {
     @Produces(MediaType.APPLICATION_JSON)
     public Response updateTenant(@PathParam("id") String id, Tenant tenant) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
-	    return Response.status(Response.Status.BAD_REQUEST)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
 
 	String validateResult = tenant.validate();
 	if (StringUtils.isNotBlank(validateResult)) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.VALIDATION_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.VALIDATION_FAILED);
 	    errorResponse.detailErrors = validateResult;
-	    return Response.status(Response.Status.BAD_REQUEST)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
 
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	Tenant newTenant;
 	try {
 	    tenant.setId(id);
 	    newTenant = attestationHubService.updateTenant(tenant);
 	} catch (AttestationHubException e) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
 	    if (e.getCause() instanceof NonexistentEntityException) {
@@ -352,7 +359,7 @@ public class Tenants {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param id
      *            ID of the tenant
@@ -363,22 +370,18 @@ public class Tenants {
     @Path("/{id:[0-9a-zA-Z_-]+ }")
     public Response deleteTenant(@PathParam("id") String id) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
-	    return Response.status(Response.Status.BAD_REQUEST)
-		    .entity(errorResponse).build();
+	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
 	Tenant tenant = null;
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
 	try {
 	    tenant = attestationHubService.retrieveTenant(id);
 	    attestationHubService.deleteTenant(id);
 	    tenant.setDeleted(true);
 	} catch (AttestationHubException e) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
 	    if (e.getCause() instanceof NonexistentEntityException) {
@@ -426,7 +429,7 @@ public class Tenants {
      *     "error_message": "Request processing failed",
      *     "detail_errors": reason for the occurence of failure
      *     }
-     * </pre>
+     *                    </pre>
      * 
      * @param tenantFilterCriteria
      *            The pojo representation of the tenant filter criteria
@@ -434,22 +437,18 @@ public class Tenants {
      */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response searchTenantsBySearchCriteria(
-	    @BeanParam TenantFilterCriteria tenantFilterCriteria,
+    public Response searchTenantsBySearchCriteria(@BeanParam TenantFilterCriteria tenantFilterCriteria,
 	    @Context HttpServletRequest httpServletRequest) {
-	log.info("Searching for tenants with name : {}",
-		tenantFilterCriteria.nameEqualTo);
-	AttestationHubService attestationHubService = AttestationHubServiceImpl
-		.getInstance();
-	
+	log.info("Searching for tenants with name : {}", tenantFilterCriteria.nameEqualTo);
+	AttestationHubService attestationHubService = AttestationHubServiceImpl.getInstance();
+
 	if (StringUtils.isBlank(httpServletRequest.getQueryString())) {
 	    return retrieveAllTenants();
 	}
 	String validate = tenantFilterCriteria.validate();
 	if (StringUtils.isNotBlank(validate)) {
 	    log.error("Invalid tenant search criteria: {}", validate);
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.VALIDATION_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.VALIDATION_FAILED);
 	    errorResponse.detailErrors = validate;
 	    Status status = Response.Status.BAD_REQUEST;
 	    return Response.status(status).entity(errorResponse).build();
@@ -457,11 +456,9 @@ public class Tenants {
 	}
 	List<Tenant> tenantsList = null;
 	try {
-	    tenantsList = attestationHubService
-		    .searchTenantsBySearchCriteria(tenantFilterCriteria);
+	    tenantsList = attestationHubService.searchTenantsBySearchCriteria(tenantFilterCriteria);
 	} catch (AttestationHubException e) {
-	    ErrorResponse errorResponse = new ErrorResponse(
-		    ErrorCode.REQUEST_PROCESSING_FAILED);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.REQUEST_PROCESSING_FAILED);
 	    errorResponse.detailErrors = e.getMessage();
 	    Status status = Response.Status.INTERNAL_SERVER_ERROR;
 	    if (e.getCause() instanceof NonexistentEntityException) {

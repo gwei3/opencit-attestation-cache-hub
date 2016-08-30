@@ -17,6 +17,22 @@
 		<!-- attestation hub -->
 		<dependency>
 			<groupId>com.intel.mtwilson.attestation-hub</groupId>
+			<artifactId>attestation-hub-kubernetes-plugin</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.intel.mtwilson.attestation-hub</groupId>
+			<artifactId>attestation-hub-mesos-plugin</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.intel.mtwilson.attestation-hub</groupId>
+			<artifactId>attestation-hub-nova-plugin</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.intel.mtwilson.attestation-hub</groupId>
 			<artifactId>attestation-hub-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>

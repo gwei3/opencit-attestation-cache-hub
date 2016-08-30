@@ -152,7 +152,7 @@ public class PluginManager {
 	details.uuid = host.getId();
 	details.hardwareUuid = host.getHardwareUuid();
 	details.trust_report = trustTagsJson;
-	details.host_name = host.getHostName();
+	details.hostname = host.getHostName();
 	List<String> assetTags = new ArrayList<>();
 	if (StringUtils.isNotBlank(host.getAssetTags())) {
 	    String[] split = host.getAssetTags().split(",");
@@ -198,7 +198,7 @@ public class PluginManager {
 		data.tenantId = ahTenant.getId();
 		data.hostDetailsList = hostsData;
 		EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin.getName());
-		if(endpointPlugin == null){
+		if (endpointPlugin == null) {
 		    log.info("No plugin available for : {}", plugin.getName());
 		    continue;
 		}

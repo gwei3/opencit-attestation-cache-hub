@@ -1,8 +1,11 @@
 package com.intel.attestationhub.mapper;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -59,7 +62,8 @@ public class HostMapper {
 	    
 	    String tag = null;
 	    String tagValue = null;
-
+	    Map<String, List<String>> assetTagToValueMap = new HashMap();
+	    List<String> tagValueList = null;
 	    for (AttributeStatement attributeStatement : attributeStatements) {
 		List<Attribute> attributes = attributeStatement.getAttributes();
 		for (Attribute attribute : attributes) {
@@ -77,6 +81,12 @@ public class HostMapper {
 			if(StringUtils.isBlank(tag)){
 			    continue;
 			}
+			if(assetTagToValueMap.containsKey(tag)){
+			    tagValueList = assetTagToValueMap.get(tag);
+			}else{
+			    tagValueList = new ArrayList<String>();
+			    assetTagToValueMap.put(tag, tagValueList);
+			}
 			List<XMLObject> attributeValues = attribute.getAttributeValues();
 			for (XMLObject xmlObject : attributeValues) {
 			    Element dom = xmlObject.getDOM();
@@ -85,12 +95,18 @@ public class HostMapper {
 			if(StringUtils.isBlank(tagValue)){
 			    continue;
 			}
-			tag = tag + "=" + tagValue;			
-			assetTagList.add(tag);
+			tagValueList.add(tagValue);
 		    }
 		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+		    String writeValueAsString = mapper.writeValueAsString(assetTagToValueMap);
+		    ahHost.setAssetTags(writeValueAsString);
+		} catch (JsonProcessingException e) {
+		    log.error("Error converting map of asset tags to JSON");
+		}
 	    }
-	    ahHost.setAssetTags(StringUtils.join(assetTagList, ","));
 
 	}
 	if (citHostAttestation != null) {

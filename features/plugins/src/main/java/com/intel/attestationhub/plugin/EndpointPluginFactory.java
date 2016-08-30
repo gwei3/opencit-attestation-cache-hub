@@ -4,9 +4,9 @@
 package com.intel.attestationhub.plugin;
 
 import com.intel.attestationhub.api.SupportedPlugins;
-import com.intel.attestationhub.plugin.impl.KubernetesPluginImpl;
-import com.intel.attestationhub.plugin.impl.MesosPluginImpl;
-import com.intel.attestationhub.plugin.impl.NovaPluginImpl;
+import com.intel.attestationhub.plugin.kubernetes.KubernetesPluginImpl;
+import com.intel.attestationhub.plugin.mesos.MesosPluginImpl;
+import com.intel.attestationhub.plugin.nova.NovaPluginImpl;
 
 /**
  * @author Vijay Prakash
@@ -25,8 +25,6 @@ public class EndpointPluginFactory {
 	    return new MesosPluginImpl();
 	case NOVA_PLUGIN:
 	    return new NovaPluginImpl();
-	default:
-	    break;
 	}
 	return null;
     }

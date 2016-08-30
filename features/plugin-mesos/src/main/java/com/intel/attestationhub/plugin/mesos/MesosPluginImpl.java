@@ -1,4 +1,4 @@
-package com.intel.attestationhub.plugin.impl;
+package com.intel.attestationhub.plugin.mesos;
 
 import java.io.File;
 import java.io.IOException;

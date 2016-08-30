@@ -19,7 +19,11 @@
 		<module>persistence</module>
 		<module>webservice</module>
 		<module>core</module>
+		<module>plugins-api</module>
 		<module>plugins</module>
+		<module>plugin-nova</module>
+		<module>plugin-mesos</module>
+		<module>plugin-kubernetes</module>
 	</modules>
 
 </project>

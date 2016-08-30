@@ -5,5 +5,5 @@ public class HostDetails {
     public String hardwareUuid;
     public String trust_report;
     public String signed_trust_report;
-    public String host_name;
+    public String hostname;
 }
