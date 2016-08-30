@@ -38,7 +38,7 @@ public abstract class AbstractIdentityService implements IdentityService {
 
     public String createAuthToken(String keystoneEndpoint, String tenantOrProjectName, String userName,
 	    String password, String domainName) throws AttestationHubException {
-	String authToken = null;
+	String authToken;
 	long start = new Date().getTime();
 	HttpClient httpClient = HttpClientBuilder.create().build();
 

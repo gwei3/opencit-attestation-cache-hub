@@ -38,10 +38,10 @@ public class NovaRsClient {
     public String authToken;
     private IdentityService identityService;
 
-    public NovaRsClient(URL url, Client client, String apiEndpoint,
-	    String keystonePublicEndpoint, String tenanatOrProjectName, String username, String password,
-	    String domainName, String version) throws AttestationHubException {
-	//this.webTarget = url;
+    public NovaRsClient(URL url, Client client, String apiEndpoint, String keystonePublicEndpoint,
+	    String tenanatOrProjectName, String username, String password, String domainName, String version)
+	    throws AttestationHubException {
+	// this.webTarget = url;
 	this.client = client;
 	validateUrl(apiEndpoint, "API");
 	createAuthToken(keystonePublicEndpoint, tenanatOrProjectName, username, password, domainName, version);
@@ -49,37 +49,40 @@ public class NovaRsClient {
     }
 
     private void createEndpointUrl(String apiEndpoint) throws AttestationHubException {
-	if(StringUtils.isBlank(authToken)){
+	if (StringUtils.isBlank(authToken)) {
 	    throw new AttestationHubException("No auth token available");
 	}
-
+	if (StringUtils.isBlank(apiEndpoint)) {
+	    throw new AttestationHubException("No API endpoint configured ");
+	}
 	String endpointUrl = identityService.getEndpointUrl();
 	try {
 	    URL url = new URL(endpointUrl);
 	    String path = url.getPath();
 	    endpointUrl = apiEndpoint + path + "/os-hypervisors";
-	    url = new URL(endpointUrl);	    
+	    url = new URL(endpointUrl);
 	    webTarget = client.target(url.toExternalForm());
 	} catch (MalformedURLException e) {
-	    throw new AttestationHubException("Invalied endpoint url "+endpointUrl, e);
+	    throw new AttestationHubException("Invalied endpoint url " + endpointUrl, e);
 	}
     }
 
     private void createAuthToken(String glanceKeystonePublicEndpoint, String tenantOrProjectName, String userName,
 	    String password, String domainName, String version) throws AttestationHubException {
-	identityService = IdentityServiceFactory.getIdentityService(IdentityService.VERSION_V2);
 
 	if (IdentityService.VERSION_V2.equalsIgnoreCase(version)) {
-	    authToken = identityService.createAuthToken(glanceKeystonePublicEndpoint, tenantOrProjectName, userName,
-		    password, domainName);
+	    identityService = IdentityServiceFactory.getIdentityService(IdentityService.VERSION_V2);
 	} else if (IdentityService.VERSION_V3.equalsIgnoreCase(version)) {
 	    identityService = IdentityServiceFactory.getIdentityService(IdentityService.VERSION_V3);
-	    authToken = identityService.createAuthToken(glanceKeystonePublicEndpoint, tenantOrProjectName, userName,
-		    password, domainName);
 	}
-	
+	if (identityService == null) {
+	    return;
+	}
+	authToken = identityService.createAuthToken(glanceKeystonePublicEndpoint, tenantOrProjectName, userName,
+		password, domainName);
+
 	log.info("Created auth token using {} version: {}", version, authToken);
-	
+
     }
 
     private void validateUrl(String urlStr, String type) throws AttestationHubException {

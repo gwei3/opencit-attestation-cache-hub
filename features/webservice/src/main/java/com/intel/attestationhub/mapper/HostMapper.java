@@ -3,10 +3,8 @@ package com.intel.attestationhub.mapper;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.opensaml.saml2.core.Assertion;
@@ -58,11 +56,9 @@ public class HostMapper {
 	    TrustAssertion trustAssertion = host.getTrustAssertion();
 	    Assertion assertion = trustAssertion.getAssertion();
 	    List<AttributeStatement> attributeStatements = assertion.getAttributeStatements();
-	    Set<String> assetTagList = new HashSet<String>();
-	    
 	    String tag = null;
 	    String tagValue = null;
-	    Map<String, List<String>> assetTagToValueMap = new HashMap();
+	    Map<String, List<String>> assetTagToValueMap = new HashMap<String, List<String>>();
 	    List<String> tagValueList = null;
 	    for (AttributeStatement attributeStatement : attributeStatements) {
 		List<Attribute> attributes = attributeStatement.getAttributes();

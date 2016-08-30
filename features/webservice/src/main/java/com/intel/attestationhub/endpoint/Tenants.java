@@ -454,7 +454,7 @@ public class Tenants {
 	    return Response.status(status).entity(errorResponse).build();
 
 	}
-	List<Tenant> tenantsList = null;
+	List<Tenant> tenantsList;
 	try {
 	    tenantsList = attestationHubService.searchTenantsBySearchCriteria(tenantFilterCriteria);
 	} catch (AttestationHubException e) {

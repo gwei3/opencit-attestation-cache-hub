@@ -47,7 +47,7 @@ public class NovaPluginImpl implements EndpointPlugin {
 	log.info("Pushed data to be published to a file");
 	NovaRsClient novaRsClient = NovaRsClientBuilder.build(plugin);
 	ObjectMapper mapper = new ObjectMapper();
-	String jsonData = null;
+	String jsonData;
 	try {
 	    log.debug("Begin publishing nova plugin data");
 	    jsonData = mapper.writeValueAsString(data);

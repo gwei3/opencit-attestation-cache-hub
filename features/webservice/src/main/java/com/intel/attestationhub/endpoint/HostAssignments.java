@@ -457,7 +457,7 @@ public class HostAssignments {
 	    Status status = Response.Status.BAD_REQUEST;
 	    return Response.status(status).entity(errorResponse).build();
 	}
-	List<AhMapping> ahMappings = null;
+	List<AhMapping> ahMappings;
 
 	try {
 	    ahMappings = attestationHubService.searchMappingsBySearchCriteria(criteriaForMapping);

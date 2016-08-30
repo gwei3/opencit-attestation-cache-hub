@@ -1,6 +1,5 @@
 package com.intel.attestationhub.plugin.nova.identity;
 
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,20 +12,6 @@ import com.intel.mtwilson.attestationhub.exception.AttestationHubException;
 public class V2IdentityServiceImpl extends AbstractIdentityService {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(V2IdentityServiceImpl.class);
-
-    public void validateParams(String tenantName, String userName, String password, String domainName)
-	    throws AttestationHubException {
-	if (StringUtils.isBlank(tenantName)) {
-	    throw new AttestationHubException("Tenant Name cannot be blank");
-	}
-	if (StringUtils.isBlank(userName)) {
-	    throw new AttestationHubException("Tenant Name cannot be blank");
-	}
-	if (StringUtils.isBlank(password)) {
-	    throw new AttestationHubException("Tenant Name cannot be blank");
-	}
-
-    }
 
     public String getAuthRequestBody(String tenantName, String userName, String password, String domainName)
 	    throws AttestationHubException {

@@ -1,7 +1,6 @@
 package com.intel.attestationhub.plugin.nova.identity;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -19,6 +18,7 @@ public class V3IdentityServiceImpl extends AbstractIdentityService {
     public String getAuthEndpoint(String glanceKeystonePublicEndpoint) {
 	return glanceKeystonePublicEndpoint + "/v3/auth/tokens";
     }
+
 
     public void validateV3Params(String tenantName, String userName, String password, String domainName)
 	    throws AttestationHubException {
