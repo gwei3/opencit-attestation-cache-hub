@@ -352,10 +352,8 @@ public class AttestationServiceClient {
 	mwHost.setTrustAssertion(assertion);
 	TrustReport trustReport = hostAttestation.getTrustReport();
 	mwHost.setTrusted(trustReport.isTrusted());
-	if (mwHost != null) {
-	    hostIdToMwHostMap.put(host.getId().toString(), mwHost);
-	    log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(),
-		    host.getId(), host.getName());
-	}
+	hostIdToMwHostMap.put(host.getId().toString(), mwHost);
+	log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(), host.getId(), host.getName());
+	
     }
 }
