@@ -76,7 +76,8 @@ public class NovaRsClient {
 	    identityService = IdentityServiceFactory.getIdentityService(IdentityService.VERSION_V3);
 	}
 	if (identityService == null) {
-	    return;
+	    log.error("Invalid auth version configured: {}", version);
+	    throw new AttestationHubException("Invalid auth version configured: "+version);
 	}
 	authToken = identityService.createAuthToken(glanceKeystonePublicEndpoint, tenantOrProjectName, userName,
 		password, domainName);
