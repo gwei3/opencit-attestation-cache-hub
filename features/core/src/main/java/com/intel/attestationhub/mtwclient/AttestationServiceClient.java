@@ -158,8 +158,6 @@ public class AttestationServiceClient {
 	log.info("Fetching host attestations");
 	Map<String, MWHost> hostIdToMwHostMap = new HashMap<>(hosts.size());
 	HostAttestations hostAttestationsService = MtwClientFactory.getHostAttestationsClient(mtwProperties);
-	HostAttestations hostAttestationVerificationService = MtwClientFactory
-		.getHostAttestationsClient(mtwPropertiesForverification);
 
 	for (Host host : hosts) {
 	    String hostId = host.getId().toString();
@@ -181,24 +179,8 @@ public class AttestationServiceClient {
 	    }
 	    if (searchHostAttestations != null && searchHostAttestations.getHostAttestations() != null
 		    && searchHostAttestations.getHostAttestations().size() > 0) {
-		MWHost mwHost = new MWHost();
 		HostAttestation hostAttestation = searchHostAttestations.getHostAttestations().get(0);
-		mwHost.setHost(host);
-		mwHost.setMwHostAttestation(hostAttestation);
-		TrustAssertion assertion = convertSamlToTrustAssertion(hostAttestationVerificationService,
-			hostAttestation.getSaml());
-		if (assertion == null) {
-		    log.error("Unable to verify trust assertion for host : {}", host.getId());
-		    continue;
-		}
-		String str = convertDateToUTCString(assertion.getNotAfter());
-		mwHost.setSamlValidTo(str);
-		mwHost.setTrustAssertion(assertion);
-		TrustReport trustReport = hostAttestation.getTrustReport();
-		mwHost.setTrusted(trustReport.isTrusted());
-		hostIdToMwHostMap.put(hostId, mwHost);
-		log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(),
-			host.getId(), host.getName());
+		populateMwHost(host, hostAttestation, hostIdToMwHostMap);		
 	    }
 	}
 
@@ -247,8 +229,6 @@ public class AttestationServiceClient {
 	log.info("Fetching host attestations added since {}", lastDateTimeFromLastRunFile);
 	Map<String, MWHost> hostIdToMwHostMap = new HashMap<>();
 	HostAttestations hostAttestationsService = MtwClientFactory.getHostAttestationsClient(mtwProperties);
-	HostAttestations hostAttestationVerificationService = MtwClientFactory
-		.getHostAttestationsClient(mtwPropertiesForverification);
 
 	Hosts hostsService = MtwClientFactory.getHostsClient(mtwProperties);
 
@@ -271,20 +251,8 @@ public class AttestationServiceClient {
 	    List<HostAttestation> hostAttestations = searchHostAttestations.getHostAttestations();
 	    for (HostAttestation hostAttestation : hostAttestations) {
 		String hostUuid = hostAttestation.getHostUuid();
-		MWHost mwHost = new MWHost();
-		mwHost.setMwHostAttestation(hostAttestation);
-		TrustAssertion assertion = convertSamlToTrustAssertion(hostAttestationVerificationService,
-			hostAttestation.getSaml());
-		if (assertion == null) {
-		    log.error("Unable to verify trust assertion for host : {}", hostAttestation.getHostUuid());
-		    continue;
-		}
-
-		String str = convertDateToUTCString(assertion.getNotAfter());
-		mwHost.setSamlValidTo(str);
 		Host citHost = hostsService.retrieveHost(hostUuid);
-		mwHost.setHost(citHost);
-		hostIdToMwHostMap.put(hostUuid, mwHost);
+		populateMwHost(citHost, hostAttestation, hostIdToMwHostMap);
 	    }
 	}
 
@@ -365,5 +333,29 @@ public class AttestationServiceClient {
 	DateTime dt = new DateTime(date.getTime(), DateTimeZone.UTC);
 	DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
 	return fmt.print(dt);
+    }
+
+    private void populateMwHost(Host host, HostAttestation hostAttestation, Map<String, MWHost> hostIdToMwHostMap) throws AttestationHubException {
+	HostAttestations hostAttestationVerificationService = MtwClientFactory
+		.getHostAttestationsClient(mtwPropertiesForverification);
+	TrustAssertion assertion = convertSamlToTrustAssertion(hostAttestationVerificationService,
+		hostAttestation.getSaml());
+	if (assertion == null) {
+	    log.error("Unable to verify trust assertion for host : {}", host.getId());
+	    return;
+	}
+	MWHost mwHost = new MWHost();
+	mwHost.setHost(host);
+	mwHost.setMwHostAttestation(hostAttestation);
+	String str = convertDateToUTCString(assertion.getNotAfter());
+	mwHost.setSamlValidTo(str);
+	mwHost.setTrustAssertion(assertion);
+	TrustReport trustReport = hostAttestation.getTrustReport();
+	mwHost.setTrusted(trustReport.isTrusted());
+	if (mwHost != null) {
+	    hostIdToMwHostMap.put(host.getId().toString(), mwHost);
+	    log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(),
+		    host.getId(), host.getName());
+	}
     }
 }

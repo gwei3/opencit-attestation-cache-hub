@@ -23,6 +23,7 @@ import com.intel.mtwilson.attestationhub.exception.AttestationHubException;
  * @author GS-0681
  */
 public class NovaRsClientBuilder {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NovaRsClientBuilder.class);
 
     public static NovaRsClient build(Plugin plugin) throws AttestationHubException {
 	try {
@@ -30,7 +31,8 @@ public class NovaRsClientBuilder {
 		throw new AttestationHubException("No configuration provided ");
 	    }
 	    List<Property> properties = plugin.getProperties();
-	    String pluginApiEndpoint = null, pluginAuthEndpoint = null, pluginAuthVersion = null, userName = null, password = null, tenantName = null, domainName = null;
+	    String pluginApiEndpoint = null, pluginAuthEndpoint = null, pluginAuthVersion = null, userName = null,
+		    password = null, tenantName = null, domainName = null;
 	    for (Property property : properties) {
 		switch (property.getKey()) {
 		case Constants.API_ENDPOINT:
@@ -56,19 +58,22 @@ public class NovaRsClientBuilder {
 		    break;
 		}
 	    }
-	    
-	    if(StringUtils.isBlank(pluginAuthEndpoint) || StringUtils.isBlank(pluginAuthVersion) || StringUtils.isBlank(password) || StringUtils.isBlank(userName) ){
+
+	    if (StringUtils.isBlank(pluginAuthEndpoint) || StringUtils.isBlank(pluginAuthVersion)
+		    || StringUtils.isBlank(password) || StringUtils.isBlank(userName)) {
+		log.error(
+			"Configuration not provided : pluginAuthEndpoint: {}, pluginAuthVersion : {}, password: {}, userName: {}",
+			pluginAuthEndpoint, pluginAuthVersion, password, userName);
 		throw new AttestationHubException("Please provide mandatory configuration for authorization");
 	    }
-	    
 
 	    URL url = new URL(pluginApiEndpoint); // example:
 						  // "http://localhost:8080/";
 
 	    Client client = ClientBuilder.newBuilder().build();
-	    //WebTarget target = client.target(url.toExternalForm());
-	    return new NovaRsClient(url, client, pluginApiEndpoint, pluginAuthEndpoint, tenantName, userName,
-		    password, domainName, pluginAuthVersion);
+	    // WebTarget target = client.target(url.toExternalForm());
+	    return new NovaRsClient(url, client, pluginApiEndpoint, pluginAuthEndpoint, tenantName, userName, password,
+		    domainName, pluginAuthVersion);
 	} catch (MalformedURLException ex) {
 	    throw new AttestationHubException("Invalid endpoints", ex);
 	}

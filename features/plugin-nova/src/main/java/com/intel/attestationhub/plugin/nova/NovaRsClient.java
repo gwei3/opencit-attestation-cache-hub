@@ -19,7 +19,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 
@@ -95,20 +95,20 @@ public class NovaRsClient {
 	HttpClient httpClient = HttpClientBuilder.create().build();
 
 	String url = webTarget.getUri().toString();
-	HttpPut putRequest = new HttpPut(url);
-	log.debug("upload Image  uri:: " + putRequest.getURI());
-	putRequest.setHeader(Constants.AUTH_TOKEN, authToken);
+	HttpPost postRequest = new HttpPost(url);
+	log.debug("upload Image  uri:: " + postRequest.getURI());
+	postRequest.setHeader(Constants.AUTH_TOKEN, authToken);
 	HttpEntity entity;
 	try {
 	    entity = new StringEntity(jsonData);
 	} catch (UnsupportedEncodingException e1) {
 	    throw new AttestationHubException(e1);
 	}
-	putRequest.setEntity(entity);
-	putRequest.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+	postRequest.setEntity(entity);
+	postRequest.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
 	HttpResponse response;
 	try {
-	    response = httpClient.execute(putRequest);
+	    response = httpClient.execute(postRequest);
 	} catch (Exception e) {
 	    log.error("Glance, uploadImage failed", e);
 	    throw new AttestationHubException("Sending data to controller failed", e);

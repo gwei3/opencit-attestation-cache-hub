@@ -83,6 +83,7 @@ public class Tenants {
                                 	}]
                                 }]
                         } 
+                        In case of auth version = v3, domain.name needs to configured too.
      * 
      *                    Output: { "id":
      *                    "BA49C7C8-B092-4841-A747-D4F4084AE5B8","name":
