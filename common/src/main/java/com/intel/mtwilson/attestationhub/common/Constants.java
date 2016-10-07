@@ -20,5 +20,6 @@ public class Constants {
     public static final String PUBLIC_KEY_FILE = "hub_public_key.pem";
     public static final String PRIVATE_KEY_FILE = "hub_private_key.pem";
     public static final String SAML_TAG = "TAG";
+    public static final String PLUGIN_PROVIDER = "plugin.provider";
 
 }

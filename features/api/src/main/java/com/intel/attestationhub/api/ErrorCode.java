@@ -3,7 +3,7 @@ package com.intel.attestationhub.api;
 public enum ErrorCode {
     VALIDATION_FAILED("600", "Validation failed"),    
     REQUEST_PROCESSING_FAILED("601", "Request processing failed"),
-    INAVLID_ID("602", "Invalid ID");
+    INVALID_ID("602", "Invalid ID");
 
     private String code;
     private String description;

@@ -1,6 +1,7 @@
 package com.intel.attestationhub.api;
 
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -20,7 +21,7 @@ public class HostTrustResponse {
     @JsonProperty("trusted")
     private boolean trusted;
     @JsonProperty("asset_tags")
-    private List<String> assetTags;
+    private Map<String, List<String>> assetTags;
 
     public String getHostName() {
 	return hostName;
@@ -54,13 +55,14 @@ public class HostTrustResponse {
         this.trusted = trusted;
     }
 
-    public List<String> getAssetTags() {
+    public Map<String, List<String>> getAssetTags() {
         return assetTags;
     }
 
-    public void setAssetTags(List<String> assetTags) {
+    public void setAssetTags(Map<String, List<String>> assetTags) {
         this.assetTags = assetTags;
     }
+
     
 
 }

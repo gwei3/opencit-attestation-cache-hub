@@ -90,7 +90,7 @@ public class Hosts {
     public Response getHost(@PathParam("id") String id) {
 	// Validate the ID
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Host Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}

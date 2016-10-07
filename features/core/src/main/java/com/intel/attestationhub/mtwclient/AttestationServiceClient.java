@@ -56,6 +56,9 @@ import com.intel.mtwilson.configuration.ConfigurationProvider;
 import com.intel.mtwilson.policy.TrustReport;
 import com.intel.mtwilson.saml.TrustAssertion;
 import com.intel.mtwilson.tls.policy.factory.TlsPolicyCreator;
+import com.intel.mtwilson.user.management.client.jaxrs.Users;
+import com.intel.mtwilson.user.management.rest.v2.model.UserCollection;
+import com.intel.mtwilson.user.management.rest.v2.model.UserFilterCriteria;
 import com.intel.mtwilson.v2.client.MwClientUtil;
 
 @SuppressWarnings("deprecation")
@@ -80,16 +83,10 @@ public class AttestationServiceClient {
 	    String user = AttestationHubConfigUtil.get(Constants.MTWILSON_API_USER);
 
 	    String password = loadedConfiguration.get(Constants.MTWILSON_API_PASSWORD);
-	    Properties properties = new Properties();
-	    properties.setProperty("mtwilson.api.tls.policy.certificate.sha1",
-		    loadedConfiguration.get(Constants.MTWILSON_API_TLS));
-	    String comment = formatCommentRequestedRoles("Attestation", "Challenger");
-	    File folder = new File(Folders.configuration());
-	    MwClientUtil.createUserInDirectoryV2(folder, user, password, server, comment, properties);
 
 	    String keystore = Folders.configuration() + File.separator + user + ".jks";
 
-	    log.info("Keystore path = {}", keystore);
+	    log.debug("Keystore path = {}", keystore);
 	    mtwProperties.setProperty(Constants.MTWILSON_API_PASSWORD, password);
 	    mtwProperties.setProperty(Constants.MTWILSON_API_TLS, loadedConfiguration.get(Constants.MTWILSON_API_TLS));
 	    mtwProperties.setProperty(Constants.MTWILSON_API_URL, loadedConfiguration.get(Constants.MTWILSON_API_URL));
@@ -102,6 +99,31 @@ public class AttestationServiceClient {
 	    mtwPropertiesForverification.setProperty("mtwilson.api.keystore.password", password);
 	    mtwPropertiesForverification.setProperty("mtwilson.api.key.alias", user);
 	    mtwPropertiesForverification.setProperty("mtwilson.api.key.password", password);
+
+	    UserCollection users = null;
+	    try {
+		Users client = new Users(mtwProperties);
+		UserFilterCriteria criteria = new UserFilterCriteria();
+		criteria.filter = true;
+		criteria.nameEqualTo = user;
+		users = client.searchUsers(criteria);
+	    } catch (Exception e) {
+		log.error("Unable to check if the user already exists in MTW", e);
+	    }
+	    File userJks = new File(Folders.configuration() + File.separator + user + ".jks");
+
+	    if (users != null && users.getUsers().size() > 0 && userJks.exists()) {
+		log.info("User: {} already created in MTW. Not creating again", user);
+	    } else {
+		log.info("Creating user: {} in MTW", user);
+		Properties properties = new Properties();
+		File folder = new File(Folders.configuration());
+		properties.setProperty("mtwilson.api.tls.policy.certificate.sha1",
+			loadedConfiguration.get(Constants.MTWILSON_API_TLS));
+		String comment = formatCommentRequestedRoles("Attestation", "Challenger");
+
+		MwClientUtil.createUserInDirectoryV2(folder, user, password, server, comment, properties);
+	    }
 
 	} catch (IOException e) {
 	    String errorMsg = "Error reading configuration for MTW client";
@@ -180,7 +202,7 @@ public class AttestationServiceClient {
 	    if (searchHostAttestations != null && searchHostAttestations.getHostAttestations() != null
 		    && searchHostAttestations.getHostAttestations().size() > 0) {
 		HostAttestation hostAttestation = searchHostAttestations.getHostAttestations().get(0);
-		populateMwHost(host, hostAttestation, hostIdToMwHostMap);		
+		populateMwHost(host, hostAttestation, hostIdToMwHostMap);
 	    }
 	}
 
@@ -335,7 +357,8 @@ public class AttestationServiceClient {
 	return fmt.print(dt);
     }
 
-    private void populateMwHost(Host host, HostAttestation hostAttestation, Map<String, MWHost> hostIdToMwHostMap) throws AttestationHubException {
+    private void populateMwHost(Host host, HostAttestation hostAttestation, Map<String, MWHost> hostIdToMwHostMap)
+	    throws AttestationHubException {
 	HostAttestations hostAttestationVerificationService = MtwClientFactory
 		.getHostAttestationsClient(mtwPropertiesForverification);
 	TrustAssertion assertion = convertSamlToTrustAssertion(hostAttestationVerificationService,
@@ -353,7 +376,7 @@ public class AttestationServiceClient {
 	TrustReport trustReport = hostAttestation.getTrustReport();
 	mwHost.setTrusted(trustReport.isTrusted());
 	hostIdToMwHostMap.put(host.getId().toString(), mwHost);
-	log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(), host.getId(), host.getName());
-	
+	log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(),
+		host.getId(), host.getName());
     }
 }

@@ -17,9 +17,10 @@ import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.jose4j.jws.AlgorithmIdentifiers;
@@ -27,6 +28,7 @@ import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.lang.JoseException;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intel.attestationhub.api.HostDetails;
@@ -153,17 +155,26 @@ public class PluginManager {
 	details.hardwareUuid = host.getHardwareUuid();
 	details.trust_report = trustTagsJson;
 	details.hostname = host.getHostName();
-	List<String> assetTags = new ArrayList<>();
+	Map<String, List<String>> assetTags = new HashMap<>();
+	ObjectMapper objectMapper = new ObjectMapper();
+
 	if (StringUtils.isNotBlank(host.getAssetTags())) {
-	    String[] split = host.getAssetTags().split(",");
-	    assetTags.addAll(Arrays.asList(split));
+	    try {
+		TypeReference<Map<String, List<String>>> typeRef = new TypeReference<Map<String, List<String>>>() {};
+		assetTags = objectMapper.readValue(host.getAssetTags(), typeRef);
+	    } catch (JsonParseException e) {
+		log.error("Error converting tags to JSON", e);
+	    } catch (JsonMappingException e) {
+		log.error("Error converting tags to JSON", e);
+	    } catch (IOException e) {
+		log.error("Error converting tags to JSON", e);
+	    }
 	}
 	if (StringUtils.isBlank(trustTagsJson)) {
 	    log.error("** No trust tags json available for host uuid: {} for generating a JWS", host.getId());
 	    return details;
 	}
 
-	ObjectMapper objectMapper = new ObjectMapper();
 	String errorMsg = "Error parsing trust response";
 	try {
 	    HostTrustResponse hostTrustResponse = objectMapper.readValue(trustTagsJson, HostTrustResponse.class);
@@ -197,16 +208,16 @@ public class PluginManager {
 		PublishData data = new PublishData();
 		data.tenantId = ahTenant.getId();
 		data.hostDetailsList = hostsData;
-		EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin.getName());
+		EndpointPlugin endpointPlugin = EndpointPluginFactory.getPluginImpl(plugin);
 		if (endpointPlugin == null) {
-		    log.info("No plugin available for : {}", plugin.getName());
+		    log.info("No plugin available for : {} for tenant with name : {} and id: {}", plugin.getName(), ahTenant.getTenantName(), ahTenant.getId());
 		    continue;
 		}
-		log.info("Before pushing data to plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
+		log.info("Before pushing data to plugin : {} of tenant with name : {} and id: {}", plugin.getName(), ahTenant.getTenantName(), ahTenant.getId());
 		endpointPlugin.pushData(data, plugin);
-		log.info("After pushing data for plugin : {} of tenant {}", plugin.getName(), ahTenant.getTenantName());
+		log.info("After pushing data for plugin : {} of tenant with name : {} and id: {}", plugin.getName(), ahTenant.getTenantName(), ahTenant.getId());
 	    } catch (AttestationHubException e) {
-		log.error("Error pushing data to plugin{}", plugin.getName(), e);
+		log.error("Error pushing data to plugin : {} of tenant with name : {} and id: {}", plugin.getName(), ahTenant.getTenantName(), ahTenant.getId(), e);
 		continue;
 	    }
 	}

@@ -74,12 +74,12 @@ public class HostMapper {
 			} else {
 			    continue;
 			}
-			if(StringUtils.isBlank(tag)){
+			if (StringUtils.isBlank(tag)) {
 			    continue;
 			}
-			if(assetTagToValueMap.containsKey(tag)){
+			if (assetTagToValueMap.containsKey(tag)) {
 			    tagValueList = assetTagToValueMap.get(tag);
-			}else{
+			} else {
 			    tagValueList = new ArrayList<String>();
 			    assetTagToValueMap.put(tag, tagValueList);
 			}
@@ -88,13 +88,13 @@ public class HostMapper {
 			    Element dom = xmlObject.getDOM();
 			    tagValue = dom.getTextContent();
 			}
-			if(StringUtils.isBlank(tagValue)){
+			if (StringUtils.isBlank(tagValue)) {
 			    continue;
 			}
 			tagValueList.add(tagValue);
 		    }
 		}
-		
+
 		ObjectMapper mapper = new ObjectMapper();
 		try {
 		    String writeValueAsString = mapper.writeValueAsString(assetTagToValueMap);

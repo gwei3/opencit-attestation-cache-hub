@@ -3,38 +3,28 @@
  */
 package com.intel.attestationhub.plugin;
 
-import com.intel.attestationhub.api.SupportedPlugins;
-import com.intel.attestationhub.plugin.kubernetes.KubernetesPluginImpl;
-import com.intel.attestationhub.plugin.mesos.MesosPluginImpl;
-import com.intel.attestationhub.plugin.nova.NovaPluginImpl;
+import org.apache.commons.lang.StringUtils;
+
+import com.intel.attestationhub.api.Tenant.Plugin;
+import com.intel.attestationhub.endpoint.Tenants;
+import com.intel.dcsg.cpg.extensions.Plugins;
 
 /**
  * @author Vijay Prakash
  *
  */
 public class EndpointPluginFactory {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EndpointPluginFactory.class);
 
-    public static EndpointPlugin getPluginImpl(String name) {
+    public static EndpointPlugin getPluginImpl(Plugin plugin) {
 
-	SupportedPlugins currentPluginConst = getPluginConst(name);
-
-	switch (currentPluginConst) {
-	case KUBERNETES_PLUGIN:
-	    return new KubernetesPluginImpl();
-	case MESOS_PLUGIN:
-	    return new MesosPluginImpl();
-	case NOVA_PLUGIN:
-	    return new NovaPluginImpl();
+	String providerClass = plugin.extractProviderClass();
+	if (StringUtils.isBlank(providerClass)) {
+	    log.error("No provider configured for plugin");
+	    return null;
 	}
-	return null;
-    }
 
-    private static SupportedPlugins getPluginConst(String name) {
-	for (SupportedPlugins supportedPlugin : SupportedPlugins.values()) {
-	    if (supportedPlugin.getPluginName().equalsIgnoreCase(name)) {
-		return supportedPlugin;
-	    }
-	}
-	return null;
+	EndpointPlugin endpointPlugin = Plugins.findByAttribute(EndpointPlugin.class, "class.name", providerClass);
+	return endpointPlugin;
     }
 }

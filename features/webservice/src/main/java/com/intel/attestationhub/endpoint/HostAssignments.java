@@ -108,7 +108,7 @@ public class HostAssignments {
     @Produces(MediaType.APPLICATION_JSON)
     public Response createMapping(Mapping mapping) {
 	if (!ValidationUtil.isValidWithRegex(mapping.tenant_id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
@@ -126,7 +126,7 @@ public class HostAssignments {
 	    }
 	}
 	if (invalidhardwareuuids.size() > 0) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Hardware UUID is not in UUID format. Following hardware uuids are in incorrct format: "+StringUtils.join(invalidhardwareuuids, ",");
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 
@@ -197,7 +197,7 @@ public class HostAssignments {
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveMapping(@PathParam("id") String id) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Mapping Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
@@ -348,7 +348,7 @@ public class HostAssignments {
     @Path("host-assignments/{id:[0-9a-zA-Z_-]+ }")
     public Response deleteMapping(@PathParam("id") String id) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Mapping Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}

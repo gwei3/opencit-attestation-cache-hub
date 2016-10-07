@@ -80,6 +80,10 @@ public class Tenants {
                                 	{
                                 		"key": "tenant.name",
                                 		"value": "default"
+                                	},
+                                	{
+                                		"key": "plugin.provider",
+                                		"value": "com.intel.attestationhub.plugin.nova.NovaPlugunImpl"
                                 	}]
                                 }]
                         } 
@@ -189,7 +193,7 @@ public class Tenants {
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveTenant(@PathParam("id") String id) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
@@ -300,7 +304,7 @@ public class Tenants {
     @Produces(MediaType.APPLICATION_JSON)
     public Response updateTenant(@PathParam("id") String id, Tenant tenant) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}
@@ -371,7 +375,7 @@ public class Tenants {
     @Path("/{id:[0-9a-zA-Z_-]+ }")
     public Response deleteTenant(@PathParam("id") String id) {
 	if (!ValidationUtil.isValidWithRegex(id, RegexPatterns.UUID)) {
-	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INAVLID_ID);
+	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
 	    errorResponse.detailErrors = "Tenant Id is not in UUID format";
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 	}

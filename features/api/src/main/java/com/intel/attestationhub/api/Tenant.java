@@ -53,6 +53,7 @@ public class Tenant {
     }
 
     public static class Plugin {
+	public static final String PLUGIN_PROVIDER = "plugin.provider";
 
 	public String name;
 	public List<Property> properties;
@@ -80,6 +81,18 @@ public class Tenant {
 
 	public void addProperty(String key, String value) {
 	    properties.add(new Property(key, value));
+	}
+
+	public String extractProviderClass() {
+	    String providerClass = null;
+	    List<Property> properties = getProperties();
+	    for (Property property : properties) {
+		if (PLUGIN_PROVIDER.equals(property.getKey())) {
+		    providerClass = property.getValue();
+		    break;
+		}
+	    }
+	    return providerClass;
 	}
     }
 
@@ -130,16 +143,7 @@ public class Tenant {
 
 	if (plugins == null || plugins.size() == 0) {
 	    errors.add("Plugin information is mandatory");
-	} else {
-	    List<String> pluginNames = SupportedPlugins.getPluginNames();
-	    for (Plugin plugin : plugins) {
-		if (StringUtils.isBlank(plugin.getName()) || !pluginNames.contains(plugin.getName().toUpperCase())) {
-		    errors.add("Plugin name has to be either of " + StringUtils.join(pluginNames, "/"));
-		    break;
-		}
-	    }
 	}
-
 	return StringUtils.join(errors, ",");
     }
 }
