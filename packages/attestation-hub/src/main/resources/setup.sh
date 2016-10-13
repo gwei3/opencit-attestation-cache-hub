@@ -214,10 +214,10 @@ update_property_in_file "attestation-hub.db.hostname" "$ATTESTATION_HUB_PROPERTI
 prompt_with_default ATTESTATION_HUB_DB_PORTNUM "Attestation-Hub db Portno:" "$ATTESTATION_HUB_DB_PORTNUM"
 update_property_in_file "attestation-hub.db.portnum" "$ATTESTATION_HUB_PROPERTIES_FILE" "$ATTESTATION_HUB_DB_PORTNUM"
 
-prompt_with_default ATTESTATION_HUB_DB_USERNAME "Attestation-Hub db username:" "$ATTESTATION_HUB_DB_USERNAME"
+ATTESTATION_HUB_DB_USERNAME=${ATTESTATION_HUB_DB_USERNAME:-"admin"}
 update_property_in_file "attestation-hub.db.username" "$ATTESTATION_HUB_PROPERTIES_FILE" "$ATTESTATION_HUB_DB_USERNAME"
 
-prompt_with_default ATTESTATION_HUB_DB_PASSWORD "Attestation-Hub db password:" "$ATTESTATION_HUB_DB_PASSWORD"
+ATTESTATION_HUB_DB_PASSWORD=${ATTESTATION_HUB_DB_PASSWORD:-$(generate_password 16)}
 update_property_in_file "attestation-hub.db.password" "$ATTESTATION_HUB_PROPERTIES_FILE" "$ATTESTATION_HUB_DB_PASSWORD"
 
 prompt_with_default ATTESTATION_HUB_DB_DRIVER "Attestation-Hub db driver:" "$ATTESTATION_HUB_DB_DRIVER"
