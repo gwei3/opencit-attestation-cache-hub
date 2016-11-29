@@ -5,7 +5,7 @@
 
 	<groupId>com.intel.mtwilson.attestation-hub</groupId>
 	<artifactId>attestation-hub-maven-build</artifactId>
-	<version>3.1-SNAPSHOT</version>
+	<version>3.2-SNAPSHOT</version>
 
 	<packaging>pom</packaging>
 
