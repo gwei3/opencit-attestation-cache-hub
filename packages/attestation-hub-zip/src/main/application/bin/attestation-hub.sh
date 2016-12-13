@@ -103,12 +103,12 @@ ATTESTATION_HUB_SETUP_TASKS=${ATTESTATION_HUB_SETUP_TASKS:-"password-vault jetty
 # if we are running as non-root and the standard location isn't writable 
 # then we need a different place
 ATTESTATION_HUB_PID_FILE=${ATTESTATION_HUB_PID_FILE:-/var/run/attestation-hub.pid}
-SCHEDULER_PID_FILE=${SCHEDULER_PID_FILE:-/var/run/scheduler.pid}
+HUB_SCHEDULER_PID_FILE=${HUB_SCHEDULER_PID_FILE:-/var/run/hubscheduler.pid}
 if [ ! -w "$ATTESTATION_HUB_PID_FILE" ] && [ ! -w $(dirname "$ATTESTATION_HUB_PID_FILE") ]; then
   ATTESTATION_HUB_PID_FILE=$ATTESTATION_HUB_REPOSITORY/attestation-hub.pid
 fi
-if [ ! -w "$SCHEDULER_PID_FILE" ] && [ ! -w $(dirname "$SCHEDULER_PID_FILE") ]; then
-  SCHEDULER_PID_FILE=$ATTESTATION_HUB_REPOSITORY/scheduler.pid
+if [ ! -w "$HUB_SCHEDULER_PID_FILE" ] && [ ! -w $(dirname "$HUB_SCHEDULER_PID_FILE") ]; then
+  HUB_SCHEDULER_PID_FILE=$ATTESTATION_HUB_REPOSITORY/hubscheduler.pid
 fi
 
 ###################################################################################################
@@ -217,24 +217,24 @@ attestation_hub_is_running() {
 }
 
 scheduler_is_running() {
-  SCHEDULER_PID=
-  if [ -f $SCHEDULER_PID_FILE ]; then
-    SCHEDULER_PID=$(cat $SCHEDULER_PID_FILE)
-    local is_running=`ps -A -o pid | grep "^\s*${SCHEDULER_PID}$"`
+  HUB_SCHEDULER_PID=
+  if [ -f $HUB_SCHEDULER_PID_FILE ]; then
+    HUB_SCHEDULER_PID=$(cat $HUB_SCHEDULER_PID_FILE)
+    local is_running=`ps -A -o pid | grep "^\s*${HUB_SCHEDULER_PID}$"`
     if [ -z "$is_running" ]; then
       # stale PID file
-      SCHEDULER_PID=
+      HUB_SCHEDULER_PID=
     fi
   fi
-  if [ -z "$SCHEDULER_PID" ]; then
+  if [ -z "$HUB_SCHEDULER_PID" ]; then
     # check the process list just in case the pid file is stale
-    SCHEDULER_PID=$(ps -A ww | grep -v grep | grep java | grep "com.intel.mtwilson.launcher.console.Main attestation-hub-scheduler"  | grep "$ATTESTATION_HUB_CONFIGURATION" | awk '{ print $1 }')
+    HUB_SCHEDULER_PID=$(ps -A ww | grep -v grep | grep java | grep "com.intel.mtwilson.launcher.console.Main attestation-hub-scheduler"  | grep "$ATTESTATION_HUB_CONFIGURATION" | awk '{ print $1 }')
   fi
-  if [ -z "$SCHEDULER_PID" ]; then
+  if [ -z "$HUB_SCHEDULER_PID" ]; then
     # Scheduler is not running
     return 1
   fi
-  # SCHEDULER is running and SCHEDULER_PID is set
+  # SCHEDULER is running and HUB_SCHEDULER_PID is set
   return 0
 }
 
@@ -281,7 +281,7 @@ scheduler_start() {
     (
       cd $ATTESTATION_HUB_HOME
       $prog $JAVA_OPTS com.intel.mtwilson.launcher.console.Main attestation-hub-scheduler >>$ATTESTATION_HUB_APPLICATION_LOG_FILE 2>&1 &      
-      echo $! > $SCHEDULER_PID_FILE
+      echo $! > $HUB_SCHEDULER_PID_FILE
     )
     if scheduler_is_running; then
       echo_success "Started Attestation Hub Scheduler"
@@ -294,13 +294,13 @@ scheduler_start() {
 
 scheduler_stop() {	
   if scheduler_is_running; then
-    kill -9 $SCHEDULER_PID
+    kill -9 $HUB_SCHEDULER_PID
     if [ $? ]; then
       echo "Stopped Attestation Hub Scheduled process"
       # truncate pid file instead of erasing,
       # because we may not have permission to create it
       # if we're running as a non-root user
-      echo > $SCHEDULER_PID_FILE
+      echo > $HUB_SCHEDULER_PID_FILE
     else
       echo "Failed to stop Scheduler"
     fi

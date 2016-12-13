@@ -81,10 +81,11 @@ public class Tenants {
                                 		"key": "tenant.name",
                                 		"value": "default"
                                 	},
-                                	{
-                                		"key": "plugin.provider",
-                                		"value": "com.intel.attestationhub.plugin.nova.NovaPlugunImpl"
-                                	}]
+                                        {
+                                            	"key": "plugin.provider",
+                                            	"value": "com.intel.attestationhub.plugin.nova.NovaPluginImpl"
+                                        } 
+                                	]
                                 }]
                         } 
                         In case of auth version = v3, domain.name needs to configured too.
@@ -96,6 +97,11 @@ public class Tenants {
      *                    }] }, { "name": "mesos", "properties": [{ "key":
      *                    "endpoint", "value": "http://www.yahoo.com" }] }] }
      *                    
+     *                    
+     *     The user needs to provide the plugin.provider configuration for the plugin. It tells the hub the name 
+     *     of the connector class that would push the data to the endpoint. This will keep the Hub not tied to any
+     *     defined set of connectors/plugins. 
+     *      
      *     When a name is not provided for the tenant:
      *     Output:
      *     {
