@@ -255,7 +255,7 @@ public class AttestationServiceClient {
 	Hosts hostsService = MtwClientFactory.getHostsClient(mtwProperties);
 
 	HostAttestationFilterCriteria criteria = new HostAttestationFilterCriteria();
-	criteria.createdDate = lastDateTimeFromLastRunFile;
+	criteria.fromDate = lastDateTimeFromLastRunFile;
 	HostAttestationCollection searchHostAttestations = null;
 
 	try {
