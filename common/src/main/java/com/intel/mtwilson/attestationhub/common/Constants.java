@@ -12,7 +12,7 @@ public class Constants {
     public static final String MTWILSON_API_URL = "mtwilson.api.url";
     public static final String MTWILSON_API_USER = "mtwilson.api.username";
     public static final String MTWILSON_API_PASSWORD = "mtwilson.api.password";
-    public static final String MTWILSON_API_TLS = "mtwilson.api.tls.policy.certificate.sha1";
+    public static final String MTWILSON_API_TLS = "mtwilson.api.tls.policy.certificate.sha256";
     public static final String ATTESTATION_HUB_POLL_INTERVAL = "attestation-hub.poll.interval";
     public static final String ATTESTATION_HUB_SAML_TIMEOUT = "attestation-hub.saml.timeout";
     public static final String CREATE = "create";
