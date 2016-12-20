@@ -251,7 +251,7 @@ update_property_in_file "mtwilson.api.url" "$ATTESTATION_HUB_PROPERTIES_FILE" "$
 update_property_in_file "mtwilson.api.username" "$ATTESTATION_HUB_PROPERTIES_FILE" "$MTWILSON_USERNAME"
 update_property_in_file "mtwilson.api.password" "$ATTESTATION_HUB_PROPERTIES_FILE" "$MTWILSON_PASSWORD"
 prompt_with_default MTWILSON_TLS "Mtwilson TLS:" "$MTWILSON_TLS"
-update_property_in_file "mtwilson.api.tls.policy.certificate.sha1" "$ATTESTATION_HUB_PROPERTIES_FILE" "$MTWILSON_TLS"
+update_property_in_file "mtwilson.api.tls.policy.certificate.sha256" "$ATTESTATION_HUB_PROPERTIES_FILE" "$MTWILSON_TLS"
 
 prompt_with_default ATTESTATION_HUB_TENANT_CONFIGURATIONS_PATH "Tenant Configurations Path:" "$ATTESTATION_HUB_TENANT_CONFIGURATIONS_PATH"
 update_property_in_file "tenant.configuration.path" "$ATTESTATION_HUB_PROPERTIES_FILE" "$ATTESTATION_HUB_TENANT_CONFIGURATIONS_PATH"

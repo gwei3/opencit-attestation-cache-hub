@@ -118,7 +118,7 @@ public class AttestationServiceClient {
 		log.info("Creating user: {} in MTW", user);
 		Properties properties = new Properties();
 		File folder = new File(Folders.configuration());
-		properties.setProperty("mtwilson.api.tls.policy.certificate.sha1",
+		properties.setProperty("mtwilson.api.tls.policy.certificate.sha256",
 			loadedConfiguration.get(Constants.MTWILSON_API_TLS));
 		String comment = formatCommentRequestedRoles("Attestation", "Challenger");
 
