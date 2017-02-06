@@ -67,8 +67,9 @@ public class AttestationServiceClient {
 
     private static Properties mtwProperties = new Properties();
     private static Properties mtwPropertiesForverification = new Properties();
+    private boolean retry = true;
 
-    static {
+    private void init() {
 	File hubPropertiesFile = new File(
 		Folders.configuration() + File.separator + Constants.ATTESTATION_HUB_PROPRRTIES_FILE_NAME);
 
@@ -109,8 +110,11 @@ public class AttestationServiceClient {
 		users = client.searchUsers(criteria);
 	    } catch (Exception e) {
 		log.error("Unable to check if the user already exists in MTW", e);
+		if (e.getMessage().indexOf("java.net.ConnectException: Connection refused") != 1) {
+		    waitForAttestationServiceAndRetry();
+		}
 	    }
-	    File userJks = new File(Folders.configuration() + File.separator + user + ".jks");
+	    File userJks = new File(keystore);
 
 	    if (users != null && users.getUsers().size() > 0 && userJks.exists()) {
 		log.info("User: {} already created in MTW. Not creating again", user);
@@ -142,6 +146,31 @@ public class AttestationServiceClient {
 	    log.error(errorMsg, e);
 	    mtwProperties = null;
 	}
+    }
+    
+    private void waitForAttestationServiceAndRetry() {
+	log.info("Connection to Attestation Service could not be established. Waiting for 5 minutes ... ");
+	if (retry) {
+	    // MTW connection has failed again. 
+	    log.info("Going to wait for 5 mins before trying to check if User API is working");
+	    try {
+		Thread.sleep(5 * 60 * 1000);
+	    } catch (InterruptedException e) {
+		log.error("Error in sleeping for retrying connection to MTW", e);
+	    }
+
+	    retry = false;
+	    log.info("Calling the init  method again....");
+	    init();
+	} else {
+	    log.info("Please start the attestation service manually and start the attestation hub after that");
+	    System.exit(0);
+	}
+    }
+
+
+    private AttestationServiceClient() {
+    	init();	
     }
 
     private static String formatCommentRequestedRoles(String... roles) throws JsonProcessingException {
