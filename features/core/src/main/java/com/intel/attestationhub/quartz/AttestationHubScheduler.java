@@ -46,7 +46,7 @@ public class AttestationHubScheduler extends AbstractCommand {
             try {
                 attestationServicePollerJob = new AttestationServicePollerJob();
             } catch (AttestationHubException e) {
-                log.error("Eror while initializing attestation poller. Going to try again as part of regular poll in {} mins", pollInterval, e);
+                log.error("Eror while initializing attestation poller. Going to try again as part of regular poll", pollInterval, e);
                 sleep(pollInterval);
                 continue;
             }
@@ -59,6 +59,7 @@ public class AttestationHubScheduler extends AbstractCommand {
 
     private void sleep(int sleepInterval){
         try {
+            log.info("Waiting for {} millis", sleepInterval);
             Thread.sleep(sleepInterval);
         } catch (InterruptedException e) {
             log.error("Error in thread running the scheduler tasks", e);
