@@ -4,6 +4,7 @@ import com.intel.attestationhub.manager.PluginManager;
 import com.intel.dcsg.cpg.console.AbstractCommand;
 import com.intel.mtwilson.attestationhub.common.AttestationHubConfigUtil;
 import com.intel.mtwilson.attestationhub.common.Constants;
+import com.intel.mtwilson.attestationhub.exception.AttestationHubException;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -36,22 +37,32 @@ public class AttestationHubScheduler extends AbstractCommand {
     }
 
     @Override
-    public void execute(String[] args) throws Exception {
+    public void execute(String[] args)  {
         log.info("Scheduling attestation service poller");
         init();
-        AttestationServicePollerJob attestationServicePollerJob = new AttestationServicePollerJob();
         PluginManager pluginManager = PluginManager.getInstance();
         while (true) {
+            AttestationServicePollerJob attestationServicePollerJob ;
+            try {
+                attestationServicePollerJob = new AttestationServicePollerJob();
+            } catch (AttestationHubException e) {
+                log.error("Eror while initializing attestation poller. Going to try again as part of regular poll in {} mins", pollInterval, e);
+                sleep(pollInterval);
+                continue;
+            }
             log.info("Executing scheduled process of pulling data from attestation service and pushing to tenants");
             attestationServicePollerJob.execute();
             pluginManager.synchAttestationInfo();
-            try {
-                Thread.sleep(pollInterval);
-            } catch (InterruptedException e) {
-                log.error("Error in thread running the scheduler tasks", e);
-            }
+            sleep(pollInterval);
         }
+    }
 
+    private void sleep(int sleepInterval){
+        try {
+            Thread.sleep(sleepInterval);
+        } catch (InterruptedException e) {
+            log.error("Error in thread running the scheduler tasks", e);
+        }
     }
 
 }

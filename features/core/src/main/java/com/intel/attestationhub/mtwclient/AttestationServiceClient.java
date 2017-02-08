@@ -41,6 +41,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -55,91 +56,61 @@ public class AttestationServiceClient {
 
     private static Properties mtwProperties = new Properties();
     private static Properties mtwPropertiesForverification = new Properties();
-    private boolean retryRequired = true;
+    private static AttestationServiceClient attestationServiceClient = null;
 
-    private void init() throws IOException, CryptographyException, ApiException, ClientException {
-        File hubPropertiesFile = new File(
-                Folders.configuration() + File.separator + Constants.ATTESTATION_HUB_PROPRRTIES_FILE_NAME);
-            ConfigurationProvider provider = ConfigurationFactory.createConfigurationProvider(hubPropertiesFile);
-            Configuration loadedConfiguration = provider.load();
 
-            Extensions.register(TlsPolicyCreator.class,
-                    com.intel.mtwilson.tls.policy.creator.impl.CertificateDigestTlsPolicyCreator.class);
+    private AttestationServiceClient() throws AttestationHubException {
+        Extensions.register(TlsPolicyCreator.class,
+                com.intel.mtwilson.tls.policy.creator.impl.CertificateDigestTlsPolicyCreator.class);
+        populateAttestationServiceProperties();
+        URL server = null;
+        try {
+            server = new URL(AttestationHubConfigUtil.get(Constants.MTWILSON_API_URL));
+        } catch (MalformedURLException e) {
+            log.error("Error forming Attestation Service URL", e);
+            throw new AttestationHubException(e);
+        }
+        String user = AttestationHubConfigUtil.get(Constants.MTWILSON_API_USER);
+        String password = AttestationHubConfigUtil.get(Constants.MTWILSON_API_PASSWORD);
+        String keystore = Folders.configuration() + File.separator + user + ".jks";
 
-            URL server = new URL(AttestationHubConfigUtil.get(Constants.MTWILSON_API_URL));
-            String user = AttestationHubConfigUtil.get(Constants.MTWILSON_API_USER);
-
-            String password = loadedConfiguration.get(Constants.MTWILSON_API_PASSWORD);
-
-            String keystore = Folders.configuration() + File.separator + user + ".jks";
-
-            log.debug("Keystore path = {}", keystore);
-            mtwProperties.setProperty(Constants.MTWILSON_API_PASSWORD, password);
-            mtwProperties.setProperty(Constants.MTWILSON_API_TLS, loadedConfiguration.get(Constants.MTWILSON_API_TLS));
-            mtwProperties.setProperty(Constants.MTWILSON_API_URL, loadedConfiguration.get(Constants.MTWILSON_API_URL));
-            mtwProperties.setProperty(Constants.MTWILSON_API_USER,
-                    loadedConfiguration.get(Constants.MTWILSON_API_USER));
-
-            // Verification settings
-            mtwPropertiesForverification = new Properties(mtwProperties);
-            mtwPropertiesForverification.setProperty("mtwilson.api.keystore", keystore);
-            mtwPropertiesForverification.setProperty("mtwilson.api.keystore.password", password);
-            mtwPropertiesForverification.setProperty("mtwilson.api.key.alias", user);
-            mtwPropertiesForverification.setProperty("mtwilson.api.key.password", password);
-
-            UserCollection users = null;
-            try {
-                Users client = new Users(mtwProperties);
-                UserFilterCriteria criteria = new UserFilterCriteria();
-                criteria.filter = true;
-                criteria.nameEqualTo = user;
-                users = client.searchUsers(criteria);
-                retryRequired = false;
-            } catch (Exception e) {
-                log.error("Unable to check if the user already exists in MTW", e);
-                if (e.getMessage().indexOf("java.net.ConnectException: Connection refused") != 1) {
-                    waitForAttestationServiceAndRetry();
-                }
-            }
-            File userJks = new File(keystore);
-
-            if (users != null && users.getUsers().size() > 0 && userJks.exists()) {
-                log.info("User: {} already created in MTW. Not creating again", user);
-            } else {
-                log.info("Creating user: {} in MTW", user);
-                Properties properties = new Properties();
-                File folder = new File(Folders.configuration());
-                properties.setProperty("mtwilson.api.tls.policy.certificate.sha256",
-                        loadedConfiguration.get(Constants.MTWILSON_API_TLS));
-                String comment = formatCommentRequestedRoles("Attestation", "Challenger");
-
-                MwClientUtil.createUserInDirectoryV2(folder, user, password, server, comment, properties);
-            }
-    }
-
-    private void waitForAttestationServiceAndRetry() {
-        log.info("Connection to Attestation Service could not be established. Retrying every 10 seconds.... ");
-        while (retryRequired) {
-            try {
-                Thread.sleep(10 * 1000);
-            } catch (InterruptedException e) {
-                log.error("Error in sleeping for retrying connection to MTW", e);
-            }
-            log.info("Calling the init  method again....");
-            try {
-                init();
-            } catch (IOException | CryptographyException | ApiException | ClientException e) {
-                log.error("Error initializing the attestation service client", e);
+        UserCollection users = null;
+        try {
+            Users client = new Users(mtwProperties);
+            UserFilterCriteria criteria = new UserFilterCriteria();
+            criteria.filter = true;
+            criteria.nameEqualTo = user;
+            users = client.searchUsers(criteria);
+        } catch (Exception e) {
+            log.error("Unable to check if the user already exists in MTW", e);
+            if (e.getMessage().indexOf("java.net.ConnectException: Connection refused") != 1) {
+                throw new AttestationHubException(e);
             }
         }
-    }
+        File userJks = new File(keystore);
 
+        if (users != null && users.getUsers().size() > 0 && userJks.exists()) {
+            log.info("User: {} already created in MTW. Not creating again", user);
+        } else {
+            log.info("Creating user: {} in MTW", user);
+            Properties properties = new Properties();
+            File folder = new File(Folders.configuration());
+            properties.setProperty("mtwilson.api.tls.policy.certificate.sha256",
+                    AttestationHubConfigUtil.get(Constants.MTWILSON_API_TLS));
+            String comment = null;
+            try {
+                comment = formatCommentRequestedRoles("Attestation", "Challenger");
+            } catch (JsonProcessingException e) {
+                log.error("Error creating user roles", e);
+                throw new AttestationHubException(e);
+            }
 
-    private AttestationServiceClient() {
-        try {
-            init();
-        } catch (IOException | CryptographyException | ApiException | ClientException e) {
-            log.error("Error initializing the attestation service client", e);
+            try {
+                MwClientUtil.createUserInDirectoryV2(folder, user, password, server, comment, properties);
+            } catch (IOException | ApiException | CryptographyException | ClientException e) {
+                log.error("Error creating user keystore", e);
+                throw new AttestationHubException(e);
+            }
         }
     }
 
@@ -163,8 +134,11 @@ public class AttestationServiceClient {
         return mapper;
     }
 
-    public static AttestationServiceClient getInstance() {
-        return new AttestationServiceClient();
+    public static AttestationServiceClient getInstance() throws AttestationHubException {
+        if (attestationServiceClient == null) {
+            attestationServiceClient = new AttestationServiceClient();
+        }
+        return attestationServiceClient;
     }
 
     public Map<String, MWHost> fetchHostAttestations(List<Host> hosts) throws AttestationHubException {
@@ -377,5 +351,32 @@ public class AttestationServiceClient {
         hostIdToMwHostMap.put(host.getId().toString(), mwHost);
         log.info("Received attestation with ID: {} for host ID : {} and name : {}", hostAttestation.getId(),
                 host.getId(), host.getName());
+    }
+
+    private void populateAttestationServiceProperties() throws AttestationHubException {
+        URL server = null;
+        try {
+            server = new URL(AttestationHubConfigUtil.get(Constants.MTWILSON_API_URL));
+        } catch (MalformedURLException e) {
+            log.error("Error forming Attestation Service URL", e);
+            throw new AttestationHubException(e);
+        }
+        String user = AttestationHubConfigUtil.get(Constants.MTWILSON_API_USER);
+        String password = AttestationHubConfigUtil.get(Constants.MTWILSON_API_PASSWORD);
+        String keystore = Folders.configuration() + File.separator + user + ".jks";
+
+        mtwProperties.setProperty(Constants.MTWILSON_API_PASSWORD, password);
+        mtwProperties.setProperty(Constants.MTWILSON_API_TLS, AttestationHubConfigUtil.get(Constants.MTWILSON_API_TLS));
+        mtwProperties.setProperty(Constants.MTWILSON_API_URL, AttestationHubConfigUtil.get(Constants.MTWILSON_API_URL));
+        mtwProperties.setProperty(Constants.MTWILSON_API_USER,
+                AttestationHubConfigUtil.get(Constants.MTWILSON_API_USER));
+
+        // Verification settings
+        mtwPropertiesForverification = new Properties(mtwProperties);
+        mtwPropertiesForverification.setProperty("mtwilson.api.keystore", keystore);
+        mtwPropertiesForverification.setProperty("mtwilson.api.keystore.password", password);
+        mtwPropertiesForverification.setProperty("mtwilson.api.key.alias", user);
+        mtwPropertiesForverification.setProperty("mtwilson.api.key.password", password);
+
     }
 }

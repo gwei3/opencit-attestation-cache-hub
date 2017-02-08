@@ -24,13 +24,12 @@ public class AttestationServicePollerJob {
     private File lastRunDateTimeFile;
     private static boolean isRetry = false;
 
-    public AttestationServicePollerJob() {
+    public AttestationServicePollerJob() throws AttestationHubException {
         attestationServiceClient = AttestationServiceClient.getInstance();
     }
 
     public void execute() {
         log.info("AttestationServicePollerJob.execute - Poller run started at {}", new Date());
-
 	/*
      * Fetch all the hosts from MTW
 	 */
