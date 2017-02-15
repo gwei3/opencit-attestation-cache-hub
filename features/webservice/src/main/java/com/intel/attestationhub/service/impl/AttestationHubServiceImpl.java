@@ -442,7 +442,7 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	    if (ahHost != null) {
 		ahHostExists = true;
 	    } else {
-		List<AhHost> findHostsByHardwareUuid = hostController.findHostsByHardwareUuid(host.getHardwareUuid());
+		List<AhHost> findHostsByHardwareUuid = hostController.findHostsByHardwareUuid(host.getHardwareUuid().toUpperCase());
 		if (findHostsByHardwareUuid != null) {
 		    // In this case we want to disable all these records
 		    for (AhHost ahHost2 : findHostsByHardwareUuid) {
