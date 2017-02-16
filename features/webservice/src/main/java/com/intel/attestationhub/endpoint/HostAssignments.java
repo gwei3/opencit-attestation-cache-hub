@@ -127,7 +127,7 @@ public class HostAssignments {
 	}
 	if (invalidhardwareuuids.size() > 0) {
 	    ErrorResponse errorResponse = new ErrorResponse(ErrorCode.INVALID_ID);
-	    errorResponse.detailErrors = "Hardware UUID is not in UUID format. Following hardware uuids are in incorrct format: "+StringUtils.join(invalidhardwareuuids, ",");
+	    errorResponse.detailErrors = "Hardware UUID is not in UUID format. Following hardware uuids are in incorrect format: "+StringUtils.join(invalidhardwareuuids, ",");
 	    return Response.status(Response.Status.BAD_REQUEST).entity(errorResponse).build();
 
 	}

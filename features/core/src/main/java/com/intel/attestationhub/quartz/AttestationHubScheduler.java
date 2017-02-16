@@ -46,7 +46,7 @@ public class AttestationHubScheduler extends AbstractCommand {
             try {
                 attestationServicePollerJob = new AttestationServicePollerJob();
             } catch (AttestationHubException e) {
-                log.error("Eror while initializing attestation poller. Going to try again as part of regular poll", pollInterval, e);
+                log.error("Error while initializing attestation poller. Going to try again as part of regular poll", pollInterval, e);
                 sleep(pollInterval);
                 continue;
             }
