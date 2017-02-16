@@ -60,7 +60,7 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 		iniFile.createNewFile();
 	    } catch (IOException e) {
 		log.error("Unable to create ini file for tenant", e);
-		throw new AttestationHubException("Umable to create a config file for tenant", e);
+		throw new AttestationHubException("Unable to create a config file for tenant", e);
 	    }
 	}
 
@@ -442,10 +442,13 @@ public class AttestationHubServiceImpl implements AttestationHubService {
 	    if (ahHost != null) {
 		ahHostExists = true;
 	    } else {
-		List<AhHost> findHostsByHardwareUuid = hostController.findHostsByHardwareUuid(host.getHardwareUuid());
+		List<AhHost> findHostsByHardwareUuid = hostController.findHostsByHardwareUuid(host.getHardwareUuid().toUpperCase());
 		if (findHostsByHardwareUuid != null) {
 		    // In this case we want to disable all these records
 		    for (AhHost ahHost2 : findHostsByHardwareUuid) {
+		    	if(ahHost2.getDeleted() != null && ahHost2.getDeleted()){
+		    		continue;
+				}
 			ahHost2.setDeleted(true);
 			ahHost2.setModifiedDate(new Date());
 			try {
