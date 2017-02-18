@@ -170,7 +170,7 @@ public class AhHostJpaController implements Serializable {
 	EntityManager em = getEntityManager();
 	try {
 	    Query query = em.createNamedQuery("AhHost.findByHardwareUuid");
-	    query.setParameter("hardwareUuid", hardwareUuid);
+	    query.setParameter("hardwareUuid", hardwareUuid.toUpperCase());
 	    hostsList = query.getResultList();
 	    if (hostsList.isEmpty()) {
 		hostsList = null;
