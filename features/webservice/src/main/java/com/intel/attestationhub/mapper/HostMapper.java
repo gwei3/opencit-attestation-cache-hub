@@ -45,7 +45,7 @@ public class HostMapper {
 	ahHost.setModifiedBy(currentUser);
 	ahHost.setModifiedDate(currentdate);
 	ahHost.setAikCertificate(citHost.getAikCertificate());
-	ahHost.setAikSha1(citHost.getAikSha1());
+	ahHost.setAikSha256(citHost.getAikSha256());
 	ahHost.setBiosMleUuid(citHost.getBiosMleUuid());
 	ahHost.setConnectionUrl(citHost.getConnectionUrl());
 	ahHost.setHardwareUuid(citHost.getHardwareUuid());
@@ -133,7 +133,7 @@ public class HostMapper {
 	Host host = new Host();
 	host.setId(new UUID(ahHost.getId().getBytes()));
 	host.setAikCertificate(ahHost.getAikCertificate());
-	host.setAikSha1(ahHost.getAikSha1());
+	host.setAikSha256(ahHost.getAikSha256());
 	host.setBiosMleUuid(ahHost.getBiosMleUuid());
 	host.setConnectionUrl(ahHost.getConnectionUrl());
 	host.setHardwareUuid(ahHost.getHardwareUuid());
