@@ -7,6 +7,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.intel.dcsg.cpg.validation.ValidationUtil;
+import com.intel.mtwilson.attestationhub.common.Constants;
 
 @JsonInclude(Include.NON_NULL) // or Include.NON_EMPTY, if that fits your use
 			       // case
@@ -140,10 +142,50 @@ public class Tenant {
 	if (StringUtils.isBlank(name)) {
 	    errors.add("Tenant Name cannot be empty");
 	}
+	if(!ValidationUtil.isValidWithRegex(name, Constants.NAME_REGEX))
+	{
+		errors.add("Tenant name can only contain alphanumeric and special characters (. _ -)");
+	}
+	boolean errorMessageEmptyNameAdded =false;
+	boolean errorMessageNameRegexAdded = false;
+	boolean errorMessagekeyAdded =false;
+	boolean errorMessageValueAdded =false;
 
 	if (plugins == null || plugins.size() == 0) {
 	    errors.add("Plugin information is mandatory");
+	}else{
+		
+	for(Plugin plugin : plugins){
+		if (!errorMessageEmptyNameAdded && StringUtils.isBlank(plugin.getName())) {
+		    errors.add("Plugin Name cannot be empty");
+		    errorMessageEmptyNameAdded=true;
+		}
+		if(!errorMessageNameRegexAdded  && !ValidationUtil.isValidWithRegex(plugin.getName(), Constants.NAME_REGEX))
+		{
+			errors.add("Plugin name can only contain alphanumeric and special characters (. _ -)");
+			errorMessageEmptyNameAdded=true;
+		}
+		List<Property> properties = plugin.getProperties();
+		for (Property property : properties) {
+			if(!errorMessagekeyAdded  && !ValidationUtil.isValidWithRegex(property.getKey(), Constants.NAME_REGEX))
+			{
+				errors.add("Plugin property key can only contain alphanumeric and special characters (. _ -)");
+				errorMessagekeyAdded=true;
+			}
+			if(!errorMessageValueAdded  && ValidationUtil.isValidWithRegex(property.getValue(), Constants.XSS_REGEX))
+			{
+				errors.add("Invalid plugin property value");
+				errorMessageValueAdded=true;
+			}
+			
+		}
+		
+		if(errorMessageEmptyNameAdded && errorMessageNameRegexAdded && errorMessagekeyAdded && errorMessageValueAdded ){
+			break;
+		}
 	}
+	}
+		
 	return StringUtils.join(errors, ",");
     }
 }
