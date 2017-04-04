@@ -21,5 +21,7 @@ public class Constants {
     public static final String PRIVATE_KEY_FILE = "hub_private_key.pem";
     public static final String SAML_TAG = "TAG";
     public static final String PLUGIN_PROVIDER = "plugin.provider";
+    public static final String NAME_REGEX = "[a-zA-Z0-9_.-]+";
+    public static final String XSS_REGEX="(?i)^.*(<|>|Redirect|script|alert).*$";
 
 }
