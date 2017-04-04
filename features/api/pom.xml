@@ -35,7 +35,11 @@
 	</build>
 
 	<dependencies>
-
+		<dependency>
+			<groupId>com.intel.mtwilson.attestation-hub</groupId>
+			<artifactId>attestation-hub-common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<!-- MtWilson -->
 		<dependency>
 			<groupId>com.intel.mtwilson.services</groupId>
