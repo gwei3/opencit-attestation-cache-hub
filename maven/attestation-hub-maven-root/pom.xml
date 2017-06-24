@@ -4,7 +4,7 @@
     
     <artifactId>attestation-hub-maven-root</artifactId>
     <groupId>com.intel.mtwilson.attestation-hub</groupId>
-    <version>3.2-SNAPSHOT</version>
+    <version>3.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Mystery Hill attestation-hub</description>
     
@@ -111,12 +111,12 @@
             <dependency>
                 <groupId>com.intel.mtwilson.services</groupId>
                 <artifactId>mtwilson-setup</artifactId>
-                <version>3.2-SNAPSHOT</version>
+				<version>${project.version}</version>
             </dependency> 
             <dependency>
                 <groupId>com.intel.mtwilson.services</groupId>
                 <artifactId>mtwilson-setup-ext</artifactId>
-                <version>3.2-SNAPSHOT</version>
+				<version>${project.version}</version>
             </dependency>
         
             <dependency>
@@ -219,7 +219,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <mtwilson.version>3.2-SNAPSHOT</mtwilson.version> <!-- for any components that we use from the latest mt wilson build -->
+        <mtwilson.version>3.2.1-SNAPSHOT</mtwilson.version> <!-- for any components that we use from the latest mt wilson build -->
         <!--<attestation-hub.version>0.1-SNAPSHOT</attestation-hub.version>-->
         <license.copyright>2014 Intel Corporation. All rights reserved.</license.copyright>
         <license.url>http://cscenter.intel.com/portal/</license.url>

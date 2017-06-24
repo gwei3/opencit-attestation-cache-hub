@@ -4,13 +4,13 @@
 
     <artifactId>attestation-hub-maven-java</artifactId>
     <groupId>com.intel.mtwilson.attestation-hub</groupId>
-    <version>3.2-SNAPSHOT</version>
+    <version>3.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Java project in attestation-hub</description>
     <parent>
         <groupId>com.intel.mtwilson.attestation-hub</groupId>
         <artifactId>attestation-hub-maven-root</artifactId>
-        <version>3.2-SNAPSHOT</version>
+        <version>3.2.1-SNAPSHOT</version>
         <relativePath />
     </parent>
 
