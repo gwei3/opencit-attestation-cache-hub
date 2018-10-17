@@ -1,0 +1,29 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.intel.mtwilson.attestation-hub</groupId>
+	<artifactId>attestation-hub-features</artifactId>
+
+	<packaging>pom</packaging>
+
+	<parent>
+		<groupId>com.intel.mtwilson.attestation-hub</groupId>
+		<artifactId>attestation-hub-maven-java</artifactId>
+		<version>3.2.1-SNAPSHOT</version>
+		<relativePath />
+	</parent>
+
+	<modules>
+		<module>api</module>
+		<module>persistence</module>
+		<module>webservice</module>
+		<module>core</module>
+		<module>plugins-api</module>
+		<module>plugins</module>
+		<module>plugin-nova</module>
+		<module>plugin-mesos</module>
+		<module>plugin-kubernetes</module>
+	</modules>
+
+</project>
